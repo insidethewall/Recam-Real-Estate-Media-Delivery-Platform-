@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using ReacmSystemApi.Data;
+using RecamSystemApi.Data;
+using RecamSystemApi.Exception;
 
-namespace ReacmSystemApi;
+namespace RecammSystemApi;
 
 public class Program
 {
@@ -12,6 +13,9 @@ public class Program
 
         builder.Services.AddDbContext<ReacmDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("ReacmDb")));
+
+        builder.Services.AddAutoMapper(typeof(Program));
+        builder.Services.AddSingleton<GlobalExceptionHandler>();
 
         // Add services to the container.
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -35,6 +39,13 @@ public class Program
         );
 
         var app = builder.Build();
+        app.UseExceptionHandler(errorApp =>
+                errorApp.Run(async context =>
+                {
+                    var exceptionHandler = context.RequestServices.GetRequiredService<GlobalExceptionHandler>();
+                    await exceptionHandler.HandleExceptionAsync(context);
+                }
+            ));
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -42,8 +53,10 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
+        app.UseAuthentication();
 
-
+        app.UseAuthorization();
+        app.MapControllers();
         app.Run();
 
     }
