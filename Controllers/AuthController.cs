@@ -1,14 +1,13 @@
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using RecamSystemApi.DTOs;
-using RecamSystemAPI.Services;
+using RecamSystemApi.Services;
 
 namespace RecamSystemAPI.Controllers
 {
     /// <summary>
     /// AUTH API
     /// </summary>
-    [Microsoft.AspNetCore.Components.Route("api/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {

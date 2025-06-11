@@ -1,7 +1,16 @@
+using System.Text;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RecamSystemApi.Data;
 using RecamSystemApi.Exception;
+using RecamSystemApi.Models;
+using RecamSystemApi.Services;
+
+
 
 namespace RecammSystemApi;
 
@@ -11,9 +20,43 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Services.AddControllers()
+                .AddJsonOptions(options=>
+                { 
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
+
         builder.Services.AddDbContext<ReacmDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("ReacmDb")));
+       
+        builder.Services.AddIdentity<User, IdentityRole>()
+                .AddEntityFrameworkStores<ReacmDbContext>()
+                .AddDefaultTokenProviders();
 
+        builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    IssuerSigningKey = 
+                    new SymmetricSecurityKey
+                    (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured.")))
+                };
+            });
+
+
+        builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
 

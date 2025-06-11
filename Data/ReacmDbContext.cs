@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using RecamSystemApi.Models;
 
 
 namespace RecamSystemApi.Data
 {
-    public class ReacmDbContext : DbContext
+    public class ReacmDbContext : IdentityDbContext<User>
     {
 
-        public DbSet<User> Users { get; set; }
         public ReacmDbContext(DbContextOptions<ReacmDbContext> options) : base(options) { }
 
     }

@@ -1,3 +1,4 @@
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -6,14 +7,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Models;
-using RecamSystemAPI.Services;
+
 
 namespace RecamSystemApi.Services;
 
  public class AuthService : IAuthService
     {
         private readonly UserManager<User> _userManager;
-        private readonly RoleManager<User> _roleManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
@@ -23,7 +24,7 @@ namespace RecamSystemApi.Services;
     /// CTOR
     /// </summary>
     /// <param name="userManager"></param>
-    public AuthService(UserManager<User> userManager, RoleManager<User> roleManager,IMapper mapper, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager,IMapper mapper, IConfiguration configuration)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -33,25 +34,39 @@ namespace RecamSystemApi.Services;
 
         public async Task<string>  Register(RegisterRequestDto registerRequest)
         {
-            User user = _mapper.Map<User>(registerRequest);
+            User user = new User
+            {
+                Email = registerRequest.Email,
+                UserName = registerRequest.UserName,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            Console.WriteLine($"UserName: {user.UserName}");
            
             IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
-            bool roleExists = await _roleManager.RoleExistsAsync(registerRequest.Role.ToString());
-            if (result.Succeeded && roleExists)
+
+            if (!result.Succeeded)
             {
-                //Create JWT token
-                string token = GenerateJwtToken(user);
-                return token;
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                throw new System.Exception($"User creation failed: {errors}");
             }
 
-            throw new System.Exception("Create User failed");
+            var roleName = registerRequest.Role.ToString();
+
+            if (!await _roleManager.RoleExistsAsync(roleName))
+                throw new System.Exception("Role does not exist.");
+
+            await _userManager.AddToRoleAsync(user, roleName);
+
+            string token = GenerateJwtToken(user, roleName);
+            return token;
         }
 
-        private string GenerateJwtToken(User user)
+        private string GenerateJwtToken(User user, string roleName)
         {
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? string.Empty),
+                new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? string.Empty, roleName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
             };
