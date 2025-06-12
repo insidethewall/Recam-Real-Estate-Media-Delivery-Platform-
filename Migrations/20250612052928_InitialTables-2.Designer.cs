@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecamSystemApi.Data;
 
@@ -11,9 +12,11 @@ using RecamSystemApi.Data;
 namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 {
     [DbContext(typeof(ReacmDbContext))]
-    partial class ReacmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250612052928_InitialTables-2")]
+    partial class InitialTables2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -408,6 +411,9 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("AgentId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
@@ -448,6 +454,9 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("PhotographerId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -460,6 +469,8 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AgentId");
+
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -468,13 +479,15 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
+                    b.HasIndex("PhotographerId");
+
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
             modelBuilder.Entity("Agent", b =>
                 {
                     b.HasOne("RecamSystemApi.Models.User", "User")
-                        .WithOne("Agent")
+                        .WithOne()
                         .HasForeignKey("Agent", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -574,7 +587,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
             modelBuilder.Entity("Photographer", b =>
                 {
                     b.HasOne("RecamSystemApi.Models.User", "User")
-                        .WithOne("Photographer")
+                        .WithOne()
                         .HasForeignKey("Photographer", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -623,6 +636,21 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("RecamSystemApi.Models.User", b =>
+                {
+                    b.HasOne("Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId");
+
+                    b.HasOne("Photographer", "Photographer")
+                        .WithMany()
+                        .HasForeignKey("PhotographerId");
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("Photographer");
+                });
+
             modelBuilder.Entity("Agent", b =>
                 {
                     b.Navigation("AgentListingCases");
@@ -640,13 +668,6 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.Navigation("AgentListingCases");
 
                     b.Navigation("MediaAssets");
-                });
-
-            modelBuilder.Entity("RecamSystemApi.Models.User", b =>
-                {
-                    b.Navigation("Agent");
-
-                    b.Navigation("Photographer");
                 });
 #pragma warning restore 612, 618
         }
