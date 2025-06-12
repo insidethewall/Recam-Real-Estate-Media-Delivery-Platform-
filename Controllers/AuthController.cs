@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Services;
 
-namespace RecamSystemAPI.Controllers
+namespace RecamSystemApi.Controllers
 {
     /// <summary>
     /// AUTH API

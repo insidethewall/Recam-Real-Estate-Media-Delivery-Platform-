@@ -12,7 +12,7 @@ using RecamSystemApi.Services;
 
 
 
-namespace RecammSystemApi;
+namespace RecamSystemApi;
 
 public class Program
 {
@@ -55,8 +55,13 @@ public class Program
                 };
             });
 
+        //repository
+        builder.Services.AddScoped<IListingCasesRepository, ListingCasesRepository>();
 
+        //service
+        builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
+
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
 
@@ -96,8 +101,10 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
-        app.UseAuthentication();
 
+  
+
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
         app.Run();

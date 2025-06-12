@@ -38,7 +38,7 @@ namespace RecamSystemApi.Services;
             {
                 Email = registerRequest.Email,
                 UserName = registerRequest.UserName,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
             };
 
             Console.WriteLine($"UserName: {user.UserName}");
@@ -66,9 +66,10 @@ namespace RecamSystemApi.Services;
         {
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? string.Empty, roleName),
+                new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? throw new System.Exception("Invalide user name to create the Token")),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim (ClaimTypes.Role, roleName)
             };
 
             var jwtKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured.");
