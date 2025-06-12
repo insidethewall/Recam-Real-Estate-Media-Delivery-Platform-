@@ -24,34 +24,66 @@ public class ReacmDbContext : IdentityDbContext<User>
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<AgentPhotographer>()
-            .HasKey(ap => new { ap.AgentId, ap.PhotographerId });
-        modelBuilder.Entity<AgentPhotographer>()
+        modelBuilder.Entity<Agent>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.HasOne(a => a.User)
+                .WithOne(u =>u.Agent)
+                .HasForeignKey<Agent>(a => a.Id)
+                .OnDelete(DeleteBehavior.Cascade); // When User is deleted, Agent is deleted
+
+            entity.Property(a => a.CompanyName).IsRequired();
+            entity.Property(a => a.AgentFirstName).IsRequired();
+            entity.Property(a => a.AgentLastName).IsRequired();
+        });
+
+        modelBuilder.Entity<Photographer>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+
+            entity.HasOne(p => p.User)
+                .WithOne(u=> u.Photographer)
+                .HasForeignKey<Photographer>(p => p.Id)
+                .OnDelete(DeleteBehavior.Cascade); // When User is deleted, Photographer is deleted
+
+            entity.Property(p => p.CompanyName).IsRequired();
+            entity.Property(p => p.PhotographerFirstName).IsRequired();
+            entity.Property(p => p.PhotographerLastName).IsRequired();
+        });
+
+        modelBuilder.Entity<AgentPhotographer>(entity =>
+        {
+            entity.HasKey(ap => new { ap.AgentId, ap.PhotographerId });
+
+            entity
             .HasOne(ap => ap.Agent)
             .WithMany(a => a.AgentPhotographer)
             .HasForeignKey(ap => ap.AgentId)
              .OnDelete(DeleteBehavior.Restrict); // Avoid cascade
-        modelBuilder.Entity<AgentPhotographer>()
+
+            entity
             .HasOne(ap => ap.Photographer)
             .WithMany(a => a.AgentPhotographer)
             .HasForeignKey(ap => ap.PhotographerId)
             .OnDelete(DeleteBehavior.Restrict); // Avoid cascade
 
+        });
 
-        // delete agent would cause AgentListingCase be deleted
-        // delete ListingCase would cause AgentListingCase Listing case id be null
-        modelBuilder.Entity<AgentListingCase>()
-            .HasKey(al => new { al.AgentId, al.ListingCaseId });
-        modelBuilder.Entity<AgentListingCase>()
+        modelBuilder.Entity<AgentListingCase>((entity) =>
+        {
+            entity.HasKey(al => new { al.AgentId, al.ListingCaseId });
+            entity
             .HasOne(al => al.Agent)
             .WithMany(a => a.AgentListingCases)
             .HasForeignKey(al => al.AgentId)
             .OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<AgentListingCase>()
+            entity
             .HasOne(al => al.ListingCase)
             .WithMany(a => a.AgentListingCases)
             .HasForeignKey(al => al.ListingCaseId)
             .OnDelete(DeleteBehavior.Restrict);
+        });
 
         // restrict to directly delete the listing case with referenced media assets
         modelBuilder.Entity<MediaAsset>(entity =>
