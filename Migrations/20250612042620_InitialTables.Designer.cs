@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecamSystemApi.Data;
 
@@ -11,9 +12,11 @@ using RecamSystemApi.Data;
 namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 {
     [DbContext(typeof(ReacmDbContext))]
-    partial class ReacmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250612042620_InitialTables")]
+    partial class InitialTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
