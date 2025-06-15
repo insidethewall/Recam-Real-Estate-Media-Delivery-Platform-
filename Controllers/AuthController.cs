@@ -18,10 +18,17 @@ namespace RecamSystemApi.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult>  Register([FromBody] RegisterRequestDto registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
         {
             string token = await _authService.Register(registerRequest);
             return StatusCode(201, token);
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
+        {
+            string token = await _authService.Login(loginRequest);
+            return Ok(token);
         }
     }
 }

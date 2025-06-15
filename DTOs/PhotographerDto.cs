@@ -1,15 +1,9 @@
-using RecamSystemApi.Enums;
-
 namespace RecamSystemApi.DTOs;
 
-public class RegisterRequestDto
+public class PhotographerDto : IUserProfileDto
 {
-    public required string Email { get; set; }
-    public required string Password { get; set; }
     public string CompanyName { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
-    public Role Role { get; set; }
 }
-

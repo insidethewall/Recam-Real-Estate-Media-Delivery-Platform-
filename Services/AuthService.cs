@@ -1,86 +1,105 @@
-using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
 using RecamSystemApi.DTOs;
+using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
 
 
 namespace RecamSystemApi.Services;
 
- public class AuthService : IAuthService
-    {
-        private readonly UserManager<User> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+public class AuthService : IAuthService
+{
+    private readonly UserManager<User> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
 
-        private readonly IMapper _mapper;
-        private readonly IConfiguration _configuration;
-        
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly IAuthRepository _authRepository;
 
-        /// <summary>
+    private readonly IMapper _mapper;
+
+
+    /// <summary>
     /// CTOR
     /// </summary>
     /// <param name="userManager"></param>
-    public AuthService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager,IMapper mapper, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository, IMapper mapper)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _jwtTokenService = jwtTokenService;
+        _authRepository = authRepository;
         _mapper = mapper;
-        _configuration = configuration;
+
     }
 
-        public async Task<string>  Register(RegisterRequestDto registerRequest)
+    public async Task<string> Register(RegisterRequestDto registerRequest)
+    {
+        User user = new User
         {
-            User user = new User
-            {
-                Email = registerRequest.Email,
-                UserName = registerRequest.UserName,
-                CreatedAt = DateTime.UtcNow,
-            };
+            Email = registerRequest.Email,
+            UserName = registerRequest.Email,
+            CreatedAt = DateTime.UtcNow,
+        };
+        Console.WriteLine($"UserName: {user.UserName}");
+        var roleName = registerRequest.Role.ToString();
 
-            Console.WriteLine($"UserName: {user.UserName}");
-           
-            IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
+        if (!await _roleManager.RoleExistsAsync(roleName))
+            throw new System.Exception("Role does not exist.");
 
-            if (!result.Succeeded)
-            {
-                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                throw new System.Exception($"User creation failed: {errors}");
-            }
+        IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
 
-            var roleName = registerRequest.Role.ToString();
-
-            if (!await _roleManager.RoleExistsAsync(roleName))
-                throw new System.Exception("Role does not exist.");
-
-            await _userManager.AddToRoleAsync(user, roleName);
-
-            string token = GenerateJwtToken(user, roleName);
-            return token;
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            throw new System.Exception($"User creation failed: {errors}");
         }
 
-        private string GenerateJwtToken(User user, string roleName)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? throw new System.Exception("Invalide user name to create the Token")),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim (ClaimTypes.Role, roleName)
-            };
+        await _userManager.AddToRoleAsync(user, roleName);
 
-            var jwtKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured.");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var token = new JwtSecurityToken(
-                        issuer: _configuration["Jwt:Issuer"],
-                        audience: _configuration["Jwt:Audience"],
-                        claims: claims,
-                        expires: DateTime.Now.AddMinutes(30),
-                        signingCredentials: creds);
-            return new JwtSecurityTokenHandler().WriteToken(token);
+        switch (registerRequest.Role)
+        {
+            case Role.Agent:
+                AgentDto agentDto = new AgentDto
+                {
+                    CompanyName = registerRequest.CompanyName,
+                    FirstName = registerRequest.FirstName,
+                    LastName = registerRequest.LastName,
+                    AvatarUrl = registerRequest.AvatarUrl
+                };
+                await _authRepository.AddUserProfileAsync(agentDto, user);
+                break;
+            case Role.Photographer:
+                PhotographerDto pho = new PhotographerDto
+                {
+                    FirstName = registerRequest.FirstName,
+                    LastName = registerRequest.LastName,
+                    AvatarUrl = registerRequest.AvatarUrl
+                };
+                await _authRepository.AddUserProfileAsync(pho, user);
+                break;
+            case Role.Admin:
+                // Admin profile handling can be added here if needed
+                break;
+            default:
+                throw new System.Exception("Invalid role specified.");
         }
+        string token = await _jwtTokenService.GenerateTokenAsync(user);
+        return token;
+    }
+
+    public async Task<string> Login(LoginRequestDto loginRequest)
+    {
+        var user = await _userManager.FindByEmailAsync(loginRequest.Email);
+        if (user == null)
+            throw new System.Exception("Invalid email or password.");
+
+        bool isPasswordValid = await _userManager.CheckPasswordAsync(user, loginRequest.Password);
+        if (!isPasswordValid)
+            throw new System.Exception("Invalid email or password.");
+
+        return await _jwtTokenService.GenerateTokenAsync(user);
+    }
+
+    
+ 
     }

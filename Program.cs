@@ -57,11 +57,12 @@ public class Program
 
         //repository
         builder.Services.AddScoped<IListingCasesRepository, ListingCasesRepository>();
-
+            builder.Services.AddScoped<IAuthRepository, AuthRepository>();    
         //service
         builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
-
+        builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+        
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
 

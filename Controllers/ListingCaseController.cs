@@ -5,7 +5,7 @@ using RecamSystemApi.Services;
 namespace RecamSystemApi.Controllers;
 
 [ApiController]
-[Route("api/listingCases")]
+[Route("api/listingcases")]
 public class ListingCaseController : ControllerBase
 {
     private readonly IListingCasesService _service;
