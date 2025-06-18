@@ -35,7 +35,8 @@ namespace RecamSystemApi.Controllers
 
         }
 
-        [Authorize(Roles = "Photographer")]
+// Endpoint to register an agent, only accessible by Admin
+        [Authorize(Roles = "Admin")]
         [HttpPost("registerAgent")]
         public async Task<IActionResult> RegisterAgent([FromBody] AgentCreateDto registerRequest)
         {

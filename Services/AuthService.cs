@@ -124,7 +124,6 @@ public class AuthService : IAuthService
 
         await _userManager.AddToRoleAsync(user, roleName);
         await _authRepository.AddAgentAsync(registerRequest, user);
-        await _authRepository.AddAgentPhotographerAsync(currentUserId, user.Id);
         await transaction.CommitAsync();
         string token = await _jwtTokenService.GenerateTokenAsync(user);
         await _emailSender.SendEmailAsync(
