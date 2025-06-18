@@ -1,5 +1,8 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecamSystemApi.DTOs;
+using RecamSystemApi.Enums;
 using RecamSystemApi.Services;
 
 namespace RecamSystemApi.Controllers
@@ -20,8 +23,25 @@ namespace RecamSystemApi.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
         {
-            string token = await _authService.Register(registerRequest);
+            if (registerRequest.Role == Enums.Role.Admin || registerRequest.Role == Role.Photographer)
+            {
+                string token = await _authService.Register(registerRequest);
+                return StatusCode(201, token);
+            }
+            else
+            {
+                return BadRequest("Role must be Admin, Photographer or Agent. Agents can only be created by Admin or Photographer.");
+            }
+
+        }
+
+        [Authorize(Roles = "Admin, Photographer")]
+        [HttpPost("registerAgent")]
+        public async Task<IActionResult> RegisterAgent([FromBody] AgentCreateDto registerRequest)
+        {
+            string token = await _authService.CreateAgentAsync(registerRequest);
             return StatusCode(201, token);
+
         }
 
         [HttpPost("login")]
@@ -29,6 +49,23 @@ namespace RecamSystemApi.Controllers
         {
             string token = await _authService.Login(loginRequest);
             return Ok(token);
+        }
+
+        [Authorize(Roles = "Admin, Photographer")]
+        [HttpDelete("deleteUser")]
+        public async Task<IActionResult> DeleteUser([FromQuery] string userId)
+        {
+            string? currentUserId = User.FindFirst("UserId")?.Value;
+            Console.WriteLine($"Current User ID: {currentUserId}");
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized("Current user ID not found.");
+            }
+
+            var response = await _authService.DeleteUserAsync(currentUserId, userId);
+            return response.Succeed
+                ? Ok(response.Data)
+                : BadRequest(response.ErrorMessage);
         }
     }
 }

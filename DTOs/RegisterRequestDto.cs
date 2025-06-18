@@ -2,14 +2,14 @@ using RecamSystemApi.Enums;
 
 namespace RecamSystemApi.DTOs;
 
-public class RegisterRequestDto
+public class RegisterRequestDto : IUserProfileDto
 {
     public required string Email { get; set; }
     public required string Password { get; set; }
-    public string CompanyName { get; set; } = string.Empty;
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
+    public required string CompanyName { get; set; } 
+    public required string FirstName { get; set; } 
+    public required string LastName { get; set; } 
     public string? AvatarUrl { get; set; }
-    public Role Role { get; set; }
+    public required Role Role { get; set; }
 }
 

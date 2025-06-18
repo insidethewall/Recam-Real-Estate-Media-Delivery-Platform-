@@ -22,7 +22,7 @@ public class JwtTokenService: IJwtTokenService
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? throw new Exception("Invalid username")),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim("UserId", user.Id),
         };
 
         var roles = await _userManager.GetRolesAsync(user);

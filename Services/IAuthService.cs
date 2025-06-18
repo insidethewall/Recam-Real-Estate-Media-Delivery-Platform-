@@ -1,5 +1,6 @@
 
 using RecamSystemApi.DTOs;
+using RecamSystemApi.Utility;
 
 namespace RecamSystemApi.Services;
 
@@ -7,4 +8,6 @@ public interface IAuthService
 {
     Task<string> Register(RegisterRequestDto registerRequest);
     Task<string> Login(LoginRequestDto loginRequest);
+    Task<string> CreateAgentAsync(AgentCreateDto registerRequest);
+    Task<ApiResponse<object?>> DeleteUserAsync(string currentUserId, string targetUserId);
     }

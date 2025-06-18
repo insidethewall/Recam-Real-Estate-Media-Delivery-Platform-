@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RecamSystemApi.Data;
 using RecamSystemApi.Exception;
+using RecamSystemApi.Helper;
 using RecamSystemApi.Models;
 using RecamSystemApi.Services;
 
@@ -62,9 +63,11 @@ public class Program
         builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-        
+
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
+
+        builder.Services.AddTransient<IEmailSender, EmailSender>();
 
         // Add services to the container.
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
