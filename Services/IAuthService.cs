@@ -8,6 +8,6 @@ public interface IAuthService
 {
     Task<string> Register(RegisterRequestDto registerRequest);
     Task<string> Login(LoginRequestDto loginRequest);
-    Task<string> CreateAgentAsync(AgentCreateDto registerRequest);
+    Task<string> CreateAgentAsync(AgentCreateDto registerRequest, string currentUserId);
     Task<ApiResponse<object?>> DeleteUserAsync(string currentUserId, string targetUserId);
     }

@@ -4,6 +4,8 @@ using RecamSystemApi.Utility;
 
 public interface IAuthRepository
 {
-    public Task AddUserProfileAsync(Role role, IUserProfileDto userProfile, User user);
+    public Task AddPhotographerAsync(IUserProfileDto userProfile, User user);
+    public Task AddAgentAsync(IUserProfileDto userProfile, User user);
+    public Task AddAgentPhotographerAsync(string photographerId, string agentId);
   
 }

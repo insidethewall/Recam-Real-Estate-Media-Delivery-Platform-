@@ -3,7 +3,7 @@ using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
 
 
-public class AuthRepository: IAuthRepository
+public class AuthRepository : IAuthRepository
 {
     private readonly ReacmDbContext _context;
 
@@ -12,43 +12,66 @@ public class AuthRepository: IAuthRepository
         _context = context;
     }
 
-    public async Task AddUserProfileAsync(Role role, IUserProfileDto userProfile, User user)
+    public async Task AddPhotographerAsync(IUserProfileDto photographerDto, User user)
     {
-        switch (role)
+        Photographer photographer = new Photographer
         {
-            case Role.Admin:
-                throw new ArgumentException("Admin profile creation is not supported through this method.");
-                
-            case Role.Photographer:
-                var photographer = new Photographer
-                {
-                    Id = user.Id,
-                    User = user,
-                    CompanyName = userProfile.CompanyName,
-                    PhotographerFirstName = userProfile.FirstName,
-                    PhotographerLastName = userProfile.LastName,
-                    AvatarUrl = userProfile.AvatarUrl
-                };
-                await _context.PhotographyCompanies.AddAsync(photographer);
-                await _context.SaveChangesAsync();
-                break;
-            case Role.Agent:
-                var agent = new Agent
-                {
-                    Id = user.Id,
-                    User = user,
-                    CompanyName = userProfile.CompanyName,
-                    AgentFirstName = userProfile.FirstName,
-                    AgentLastName = userProfile.LastName,
-                    AvatarUrl = userProfile.AvatarUrl
-                };
-                await _context.Agents.AddAsync(agent);
-                await _context.SaveChangesAsync();
-                break;
-            default:
-                throw new ArgumentException("Invalid role for user profile creation.");
-        }
+            Id = user.Id,
+            User = user,
+            CompanyName = photographerDto.CompanyName,
+            PhotographerFirstName = photographerDto.FirstName,
+            PhotographerLastName = photographerDto.LastName,
+            AvatarUrl = photographerDto.AvatarUrl
+        };
+        await _context.PhotographyCompanies.AddAsync(photographer);
+        await _context.SaveChangesAsync();
     }
+
+    public async Task AddAgentAsync(IUserProfileDto userProfile, User user)
+    {
+        var agent = new Agent
+        {
+            Id = user.Id,
+            User = user,
+            CompanyName = userProfile.CompanyName,
+            AgentFirstName = userProfile.FirstName,
+            AgentLastName = userProfile.LastName,
+            AvatarUrl = userProfile.AvatarUrl,
+        };
+        await _context.Agents.AddAsync(agent);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AddAgentPhotographerAsync(string photographerId, string agentId)
+    {
+        Photographer? photographer = await _context.PhotographyCompanies.FindAsync(photographerId);
+        Agent? agent = await _context.Agents.FindAsync(agentId);
+
+        if (photographer == null || agent == null)
+        {
+            throw new ArgumentException("Photographer or Agent not found.");
+        }
+
+        AgentPhotographer agentPhotographer = new AgentPhotographer
+        {
+            PhotographerId = photographer.Id,
+            AgentId = agent.Id,
+            Photographer = photographer,
+            Agent = agent
+        };
+        try
+        { 
+            await _context.AgentPhotographers.AddAsync(agentPhotographer);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error adding AgentPhotographer: {ex.Message}");
+            
+        }
+  
+    }
+ 
 
     // public async Task<ApiResponse<object?>> DeleteUserProfileAsync(string userId, Role role)
     // {
@@ -56,7 +79,7 @@ public class AuthRepository: IAuthRepository
     //     {
     //         case Role.Admin:
     //             throw new ArgumentException("Admin profile deletion is not supported through this method.");
-                
+
     //         case Role.Photographer:
     //             Photographer? photographer = await _context.PhotographyCompanies.Include(a => a.User).FirstOrDefaultAsync(a => a.Id == userId);
     //             if (photographer != null)
@@ -75,7 +98,7 @@ public class AuthRepository: IAuthRepository
     //                 return ApiResponse<object?>.Success(agent, $"Agent profile {agent.Id} Soft deleted successfully.");
     //             }
     //             return ApiResponse<object?>.Fail($"Agent profile with ID {userId} not found.", "404");
-           
+
     //         default:
     //             return ApiResponse<object?>.Fail("Invalid role for user profile deletion.");
     //     }

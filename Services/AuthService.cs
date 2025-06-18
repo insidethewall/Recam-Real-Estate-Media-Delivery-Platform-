@@ -50,23 +50,37 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow,
         };
         Console.WriteLine($"UserName: {user.UserName}");
-        var roleName = registerRequest.Role.ToString();
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        { 
+            var roleName = registerRequest.Role.ToString();
 
-        if (!await _roleManager.RoleExistsAsync(roleName))
-            throw new System.Exception("Role does not exist.");
+            if (!await _roleManager.RoleExistsAsync(roleName))
+                throw new System.Exception("Role does not exist.");
 
-        IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
+            IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
 
-        if (!result.Succeeded)
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                throw new System.Exception($"User creation failed: {errors}");
+            }
+
+            await _userManager.AddToRoleAsync(user, roleName);
+            if (registerRequest.Role == Role.Photographer)
+            { 
+                await _authRepository.AddPhotographerAsync(registerRequest, user);
+            }
+            await transaction.CommitAsync();
+            string token = await _jwtTokenService.GenerateTokenAsync(user);
+            return token;
+        } catch (System.Exception ex)
         {
-            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            throw new System.Exception($"User creation failed: {errors}");
+            await transaction.RollbackAsync();
+            await _userManager.DeleteAsync(user); // Clean up in case of error
+            throw new System.Exception($"Internal server error: {ex.Message}");
         }
-
-        await _userManager.AddToRoleAsync(user, roleName);
-        await CreateUserProfileAsync(registerRequest.Role, registerRequest, user);
-        string token = await _jwtTokenService.GenerateTokenAsync(user);
-        return token;
+   
     }
 
 // login for all roles
@@ -83,7 +97,7 @@ public class AuthService : IAuthService
         return await _jwtTokenService.GenerateTokenAsync(user);
     }
 
-    public async Task<string> CreateAgentAsync(AgentCreateDto registerRequest)
+    public async Task<string> CreateAgentAsync(AgentCreateDto registerRequest, string currentUserId)
     {
         string password = PasswordGenerator.GenerateStrongPassword();
         User user = new User
@@ -94,15 +108,11 @@ public class AuthService : IAuthService
         };
         Console.WriteLine($"UserName: {user.UserName}");
         var roleName = Role.Agent.ToString();
-
-        if (!await _roleManager.RoleExistsAsync(roleName))
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        { 
+            if (!await _roleManager.RoleExistsAsync(roleName))
             throw new System.Exception("Role does not exist.");
-
-        await _emailSender.SendEmailAsync(
-            registerRequest.Email,
-            "Welcome to Recam System",
-            $"Your account has been created successfully. Your password is: {password}. Please change it after your first login."
-        );
 
         IdentityResult result = await _userManager.CreateAsync(user,password);
 
@@ -113,10 +123,25 @@ public class AuthService : IAuthService
         }
 
         await _userManager.AddToRoleAsync(user, roleName);
-        await CreateUserProfileAsync(Role.Agent, registerRequest, user);
-
+        await _authRepository.AddAgentAsync(registerRequest, user);
+        await _authRepository.AddAgentPhotographerAsync(currentUserId, user.Id);
+        await transaction.CommitAsync();
         string token = await _jwtTokenService.GenerateTokenAsync(user);
+        await _emailSender.SendEmailAsync(
+            registerRequest.Email,
+            "Welcome to Recam System",
+            $"Your account has been created successfully. Your password is: {password}. Please change it after your first login."
+        );
         return token;
+        }
+        catch (System.Exception ex)
+        {
+            await transaction.RollbackAsync();
+            await _userManager.DeleteAsync(user); // Clean up in case of error
+            throw new System.Exception($"Internal server error: {ex.Message}");
+        }
+
+        
     }
 
     public async Task<ApiResponse<object?>> DeleteUserAsync(string currentUserId, string targetUserId)
@@ -173,45 +198,6 @@ public class AuthService : IAuthService
         // }
 
     }
-    
-    
-    
-
-    private async Task CreateUserProfileAsync(Role role, IUserProfileDto registerRequest, User user)
-    {
-        switch (role)
-        {
-            case Role.Agent:
-                var agentDto = new AgentDto
-                {
-                    CompanyName = registerRequest.CompanyName,
-                    FirstName = registerRequest.FirstName,
-                    LastName = registerRequest.LastName,
-                    AvatarUrl = registerRequest.AvatarUrl
-                };
-                await _authRepository.AddUserProfileAsync(role, agentDto, user);
-                break;
-
-            case Role.Photographer:
-                var photographerDto = new PhotographerDto
-                {
-                    CompanyName = registerRequest.CompanyName,
-                    FirstName = registerRequest.FirstName,
-                    LastName = registerRequest.LastName,
-                    AvatarUrl = registerRequest.AvatarUrl
-                };
-                await _authRepository.AddUserProfileAsync(role, photographerDto, user);
-                break;
-
-            case Role.Admin:
-                // Optional: handle admin creation if needed
-                break;
-
-            default:
-                throw new System.Exception("Invalid role specified.");
-        }
-    }
-
     
  
     }

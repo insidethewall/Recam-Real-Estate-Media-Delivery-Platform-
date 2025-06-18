@@ -35,11 +35,17 @@ namespace RecamSystemApi.Controllers
 
         }
 
-        [Authorize(Roles = "Admin, Photographer")]
+        [Authorize(Roles = "Photographer")]
         [HttpPost("registerAgent")]
         public async Task<IActionResult> RegisterAgent([FromBody] AgentCreateDto registerRequest)
         {
-            string token = await _authService.CreateAgentAsync(registerRequest);
+            string? currentUserId = User.FindFirst("UserId")?.Value;
+            Console.WriteLine($"Current User ID: {currentUserId}");
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized("Current user ID not found.");
+            }
+            string token = await _authService.CreateAgentAsync(registerRequest, currentUserId);
             return StatusCode(201, token);
 
         }
