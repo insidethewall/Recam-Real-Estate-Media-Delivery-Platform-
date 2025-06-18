@@ -142,7 +142,7 @@ public class AuthService : IAuthService
 
         
     }
-
+// only Admin can delete users
     public async Task<ApiResponse<object?>> DeleteUserAsync(string currentUserId, string targetUserId)
     {
         User? currentUser = await _userManager.FindByIdAsync(currentUserId);
@@ -161,11 +161,9 @@ public class AuthService : IAuthService
         if (currentRole == null || targetRole == null)
             return ApiResponse<object?>.Fail("User roles not found.", "404");
         // Check permissions
-        if (currentRole == Role.Agent.ToString())
-            return ApiResponse<object?>.Fail("Agents are not allowed to delete any users.", "403");
+        if (currentRole == Role.Agent.ToString() || currentRole == Role.Photographer.ToString())
+            return ApiResponse<object?>.Fail($"{currentRole} are not allowed to delete any users.", "403");
 
-        if (currentRole == Role.Photographer.ToString() && targetRole != Role.Agent.ToString())
-            return ApiResponse<object?>.Fail("Photographers can only delete agents.", "403");
         targetUser.IsDeleted = true; // Soft delete
         IdentityResult result = await _userManager.UpdateAsync(targetUser);
         if (!result.Succeeded)

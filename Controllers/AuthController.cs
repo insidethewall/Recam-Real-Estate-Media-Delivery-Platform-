@@ -58,7 +58,8 @@ namespace RecamSystemApi.Controllers
             return Ok(token);
         }
 
-        [Authorize(Roles = "Admin, Photographer")]
+// Endpoint to delete a user, only accessible by Admin
+        [Authorize(Roles = "Admin")]
         [HttpDelete("deleteUser")]
         public async Task<IActionResult> DeleteUser([FromQuery] string userId)
         {
