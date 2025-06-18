@@ -38,7 +38,7 @@ public class AuthService : IAuthService
 
     }
 
-// only for Admin and Photographer roles
+    // only for Admin and Photographer roles
     public async Task<string> Register(RegisterRequestDto registerRequest)
     {
         if (registerRequest.Role == Role.Agent)
@@ -52,7 +52,7 @@ public class AuthService : IAuthService
         Console.WriteLine($"UserName: {user.UserName}");
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
-        { 
+        {
             var roleName = registerRequest.Role.ToString();
 
             if (!await _roleManager.RoleExistsAsync(roleName))
@@ -68,22 +68,23 @@ public class AuthService : IAuthService
 
             await _userManager.AddToRoleAsync(user, roleName);
             if (registerRequest.Role == Role.Photographer)
-            { 
+            {
                 await _authRepository.CreatePhotographerAsync(registerRequest, user);
             }
             await transaction.CommitAsync();
             string token = await _jwtTokenService.GenerateTokenAsync(user);
             return token;
-        } catch (System.Exception ex)
+        }
+        catch (System.Exception ex)
         {
             await transaction.RollbackAsync();
             await _userManager.DeleteAsync(user); // Clean up in case of error
             throw new System.Exception($"Internal server error: {ex.Message}");
         }
-   
+
     }
 
-// login for all roles
+    // login for all roles
     public async Task<string> Login(LoginRequestDto loginRequest)
     {
         var user = await _userManager.FindByEmailAsync(loginRequest.Email);
@@ -110,28 +111,28 @@ public class AuthService : IAuthService
         var roleName = Role.Agent.ToString();
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
-        { 
-            if (!await _roleManager.RoleExistsAsync(roleName))
-            throw new System.Exception("Role does not exist.");
-
-        IdentityResult result = await _userManager.CreateAsync(user,password);
-
-        if (!result.Succeeded)
         {
-            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            throw new System.Exception($"User creation failed: {errors}");
-        }
+            if (!await _roleManager.RoleExistsAsync(roleName))
+                throw new System.Exception("Role does not exist.");
 
-        await _userManager.AddToRoleAsync(user, roleName);
-        await _authRepository.CreateAgentAsync(registerRequest, user);
-        await transaction.CommitAsync();
-        string token = await _jwtTokenService.GenerateTokenAsync(user);
-        await _emailSender.SendEmailAsync(
-            registerRequest.Email,
-            "Welcome to Recam System",
-            $"Your account has been created successfully. Your password is: {password}. Please change it after your first login."
-        );
-        return token;
+            IdentityResult result = await _userManager.CreateAsync(user, password);
+
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                throw new System.Exception($"User creation failed: {errors}");
+            }
+
+            await _userManager.AddToRoleAsync(user, roleName);
+            await _authRepository.CreateAgentAsync(registerRequest, user);
+            await transaction.CommitAsync();
+            string token = await _jwtTokenService.GenerateTokenAsync(user);
+            await _emailSender.SendEmailAsync(
+                registerRequest.Email,
+                "Welcome to Recam System",
+                $"Your account has been created successfully. Your password is: {password}. Please change it after your first login."
+            );
+            return token;
         }
         catch (System.Exception ex)
         {
@@ -139,14 +140,14 @@ public class AuthService : IAuthService
             await _userManager.DeleteAsync(user); // Clean up in case of error
             throw new System.Exception($"Internal server error: {ex.Message}");
         }
-
-        
     }
-// only Admin can delete users
+
+
+    // only Admin can delete users
     public async Task<ApiResponse<object?>> DeleteUserAsync(string currentUserId, string targetUserId)
     {
         User? currentUser = await _userManager.FindByIdAsync(currentUserId);
-        Console.WriteLine( $"Current User : {currentUser?.UserName}");
+        Console.WriteLine($"Current User : {currentUser?.UserName}");
         User? targetUser = await _userManager.FindByIdAsync(targetUserId);
         if (currentUser == null)
             return ApiResponse<object?>.Fail("Current user Unauthorize.", "401");
@@ -155,7 +156,7 @@ public class AuthService : IAuthService
 
         var targetRoles = await _userManager.GetRolesAsync(targetUser);
         var currentRoles = await _userManager.GetRolesAsync(currentUser);
-        Console.WriteLine( $"Current User Roles: {string.Join(", ", currentRoles)}");
+        Console.WriteLine($"Current User Roles: {string.Join(", ", currentRoles)}");
         var targetRole = targetRoles.FirstOrDefault();
         var currentRole = currentRoles.FirstOrDefault();
         if (currentRole == null || targetRole == null)
@@ -173,27 +174,33 @@ public class AuthService : IAuthService
         }
         return ApiResponse<object?>.Success(targetUser, "User deleted successfully.");
 
+    }
 
-        // await using var transaction = await _context.Database.BeginTransactionAsync();
-        // try
-        // {
-        //     IdentityResult result = await _userManager.DeleteAsync(targetUser);
-        //     if (!result.Succeeded)
-        //     {
-        //         var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-        //         return ApiResponse<object?>.Fail($"User deletion failed: {errors}", "500");
-        //     }
-        //     await _authRepository.DeleteUserProfileAsync(targetUserId, Enum.Parse<Role>(roles.FirstOrDefault() ?? string.Empty));
-        //     await transaction.CommitAsync();
-        //     return ApiResponse<object?>.Success(targetUser, "User deleted successfully.");
+    public async Task<ApiResponse<object?>> AddAgentAsync(string agentEmail, string currentUserId)
+    {
+        User? currentUser = await _userManager.FindByIdAsync(currentUserId);
+        if (currentUser == null)
+            return ApiResponse<object?>.Fail("Current user not found.", "404");
 
-        // }
-        // catch (System.Exception ex)
-        // {
-        //     await transaction.RollbackAsync();
-        //     return ApiResponse<object?>.Fail($"Internal server error: {ex.Message}");
-        // }
+        if (!await _userManager.IsInRoleAsync(currentUser, Role.Photographer.ToString()))
+            return ApiResponse<object?>.Fail("Only photographers can add agents.", "403");
 
+        User? agentUser = await _userManager.FindByEmailAsync(agentEmail);
+        if (agentUser == null)
+            return ApiResponse<object?>.Fail("Agent not found.", "404");
+
+        if (!await _userManager.IsInRoleAsync(agentUser, Role.Agent.ToString()))
+            return ApiResponse<object?>.Fail("This user is not an agent.", "403");
+
+        try
+        {
+            await _authRepository.CreateAgentPhotographerAsync(currentUser.Id, agentUser.Id);
+            return ApiResponse<object?>.Success(agentUser, "Agent added successfully.");
+        }
+        catch (System.Exception ex)
+        {
+            return ApiResponse<object?>.Fail($"Error adding agent: {ex.Message}", "500");
+        }
     }
     
  

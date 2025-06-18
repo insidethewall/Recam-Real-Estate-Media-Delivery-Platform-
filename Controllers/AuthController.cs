@@ -51,6 +51,26 @@ namespace RecamSystemApi.Controllers
 
         }
 
+        [Authorize(Roles = "Photographer")]
+        [HttpPost("addAgent")]
+
+        public async Task<IActionResult> AddAgent([FromBody] string agentEmail)
+        { 
+            string? currentUserId = User.FindFirst("UserId")?.Value;
+            Console.WriteLine($"Current User ID: {currentUserId}");
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized("Current user ID not found.");
+            }
+
+            var response = await _authService.AddAgentAsync(agentEmail, currentUserId);
+            return response.Succeed
+                ? Ok(response.Data)
+                : BadRequest(response.ErrorMessage);
+
+        }
+    
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
