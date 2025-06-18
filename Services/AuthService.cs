@@ -69,7 +69,7 @@ public class AuthService : IAuthService
             await _userManager.AddToRoleAsync(user, roleName);
             if (registerRequest.Role == Role.Photographer)
             { 
-                await _authRepository.AddPhotographerAsync(registerRequest, user);
+                await _authRepository.CreatePhotographerAsync(registerRequest, user);
             }
             await transaction.CommitAsync();
             string token = await _jwtTokenService.GenerateTokenAsync(user);
@@ -123,7 +123,7 @@ public class AuthService : IAuthService
         }
 
         await _userManager.AddToRoleAsync(user, roleName);
-        await _authRepository.AddAgentAsync(registerRequest, user);
+        await _authRepository.CreateAgentAsync(registerRequest, user);
         await transaction.CommitAsync();
         string token = await _jwtTokenService.GenerateTokenAsync(user);
         await _emailSender.SendEmailAsync(

@@ -12,7 +12,7 @@ public class AuthRepository : IAuthRepository
         _context = context;
     }
 
-    public async Task AddPhotographerAsync(IUserProfileDto photographerDto, User user)
+    public async Task CreatePhotographerAsync(IUserProfileDto photographerDto, User user)
     {
         Photographer photographer = new Photographer
         {
@@ -27,7 +27,7 @@ public class AuthRepository : IAuthRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task AddAgentAsync(IUserProfileDto userProfile, User user)
+    public async Task CreateAgentAsync(IUserProfileDto userProfile, User user)
     {
         var agent = new Agent
         {
@@ -42,7 +42,7 @@ public class AuthRepository : IAuthRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task AddAgentPhotographerAsync(string photographerId, string agentId)
+    public async Task CreateAgentPhotographerAsync(string photographerId, string agentId)
     {
         Photographer? photographer = await _context.PhotographyCompanies.FindAsync(photographerId);
         Agent? agent = await _context.Agents.FindAsync(agentId);
