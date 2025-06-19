@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using RecamSystemApi.Data;
 using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
@@ -60,16 +61,32 @@ public class AuthRepository : IAuthRepository
             Agent = agent
         };
         try
-        { 
+        {
             await _context.AgentPhotographers.AddAsync(agentPhotographer);
             await _context.SaveChangesAsync();
         }
         catch (Exception ex)
         {
             throw new Exception($"Error adding AgentPhotographer: {ex.Message}");
-            
+
         }
-  
+
+    }
+
+    public async Task DeleteAgentPhotographerCompany(string userId)
+    {
+        try
+        { 
+            List<AgentPhotographer> agentPhotographers = await _context.AgentPhotographers
+                .Where(ap => ap.PhotographerId == userId || ap.AgentId == userId)
+                .ToListAsync();
+            _context.AgentPhotographers.RemoveRange(agentPhotographers);
+            await _context.SaveChangesAsync();
+        } catch (Exception ex)
+        {
+            throw new Exception($"Error deleting AgentPhotographerCompany: {ex.Message}");
+        }
+
     }
  
 

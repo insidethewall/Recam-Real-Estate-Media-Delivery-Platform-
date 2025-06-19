@@ -1,5 +1,7 @@
+using System.Transactions;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.VisualBasic;
 using RecamSystemApi.Data;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Enums;
@@ -90,7 +92,8 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByEmailAsync(loginRequest.Email);
         if (user == null)
             throw new System.Exception("Invalid email or password.");
-
+        if (user.IsDeleted)
+            throw new System.Exception("User account is deleted or inactive.");
         bool isPasswordValid = await _userManager.CheckPasswordAsync(user, loginRequest.Password);
         if (!isPasswordValid)
             throw new System.Exception("Invalid email or password.");
@@ -164,15 +167,37 @@ public class AuthService : IAuthService
         // Check permissions
         if (currentRole == Role.Agent.ToString() || currentRole == Role.Photographer.ToString())
             return ApiResponse<object?>.Fail($"{currentRole} are not allowed to delete any users.", "403");
-
-        targetUser.IsDeleted = true; // Soft delete
-        IdentityResult result = await _userManager.UpdateAsync(targetUser);
-        if (!result.Succeeded)
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        { 
+            targetUser.IsDeleted = true; // Soft delete
+            IdentityResult result = await _userManager.UpdateAsync(targetUser);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return ApiResponse<object?>.Fail($"User deletion failed: {errors}", "500");
+            }
+            if (targetRole == Role.Photographer.ToString())
+            {
+                await _authRepository.DeleteAgentPhotographerCompany(targetUserId);
+            }
+            else if (targetRole == Role.Agent.ToString())
+            {
+                await _authRepository.DeleteAgentPhotographerCompany(targetUserId);
+                //ToDo: Delete AgentListing cases
+            }
+            await transaction.CommitAsync();
+            return ApiResponse<object?>.Success(targetUser, "User deleted successfully.");
+            
+        } 
+        catch (System.Exception ex)
         {
-            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            return ApiResponse<object?>.Fail($"User deletion failed: {errors}", "500");
+            await transaction.RollbackAsync();
+            targetUser.IsDeleted = false;
+            IdentityResult result = await _userManager.UpdateAsync(targetUser);
+            return ApiResponse<object?>.Fail($"Internal server error: {ex.Message}", "500");
         }
-        return ApiResponse<object?>.Success(targetUser, "User deleted successfully.");
+
 
     }
 
