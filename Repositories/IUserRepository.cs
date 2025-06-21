@@ -7,9 +7,9 @@ public interface IUserRepository
     public Task CreateAgentPhotographerAsync(string photographerId, string agentId);
     public Task DeleteAgentPhotographerCompany(string userId);
 
-    public Task<ICollection<Agent>> GetAllAgentsAsync();
+    public Task<ICollection<UserInfoDto>> GetAllAgentsAsync();
 
-    public Task<ICollection<Photographer>> GetAllPhotographersAsync();
+    public Task<ICollection<UserInfoDto>> GetAllPhotographersAsync();
 
-     public Task<ICollection<AgentInfoDto>> GetAgentsByPhotographerAsync(string photographerId);
+     public Task<ICollection<UserInfoDto>> GetAgentsByPhotographerAsync(string photographerId);
 }

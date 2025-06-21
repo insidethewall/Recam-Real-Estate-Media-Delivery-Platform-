@@ -153,17 +153,17 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<ICollection<Agent>> GetAllAgentsAsync()
+    public async Task<ICollection<UserInfoDto>> GetAllAgentsAsync()
     {
         return await _userRepository.GetAllAgentsAsync();
     }
 
-    public async Task<ICollection<Photographer>> GetAllPhotographersAsync()
+    public async Task<ICollection<UserInfoDto>> GetAllPhotographersAsync()
     {
         return await _userRepository.GetAllPhotographersAsync();
     }
 
-    public async Task<ICollection<AgentInfoDto>> GetAgentsByPhotographerAsync(string photographerId)
+    public async Task<ICollection<UserInfoDto>> GetAgentsByPhotographerAsync(string photographerId)
     {
         if (string.IsNullOrEmpty(photographerId))
             throw new ArgumentException("Photographer ID cannot be null or empty.", nameof(photographerId));

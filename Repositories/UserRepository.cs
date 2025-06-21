@@ -72,23 +72,39 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task<ICollection<Agent>> GetAllAgentsAsync()
+    public async Task<ICollection<UserInfoDto>> GetAllAgentsAsync()
     {
-        return await _context.Agents.ToListAsync();
+        return await _context.Agents.Where(agent=>agent.User.IsDeleted == false).Select(agent=> new UserInfoDto
+            {
+                Id = agent.Id,
+                Email = agent.User.Email ?? string.Empty,
+                CompanyName = agent.CompanyName,
+                FirstName = agent.AgentFirstName,
+                LastName = agent.AgentLastName,
+                AvatarUrl = agent.AvatarUrl
+             }).ToListAsync();
     }
 
-    public async Task<ICollection<Photographer>> GetAllPhotographersAsync()
+    public async Task<ICollection<UserInfoDto>> GetAllPhotographersAsync()
     {
-        return await _context.PhotographyCompanies.ToListAsync();
+        return await _context.PhotographyCompanies.Where(p=>p.User.IsDeleted == false).Select(p => new UserInfoDto
+        { 
+                Id = p.Id,
+                Email = p.User.Email ?? string.Empty,
+                CompanyName = p.CompanyName,
+                FirstName = p.PhotographerFirstName,
+                LastName = p.PhotographerLastName,
+                AvatarUrl = p.AvatarUrl
+        }).ToListAsync();
     }
 
-    public async Task<ICollection<AgentInfoDto>> GetAgentsByPhotographerAsync(string photographerId)
+    public async Task<ICollection<UserInfoDto>> GetAgentsByPhotographerAsync(string photographerId)
     {
         if (string.IsNullOrEmpty(photographerId))
             throw new ArgumentException("Photographer ID cannot be null or empty.", nameof(photographerId));
         return await _context.AgentPhotographers
             .Where(ap => ap.PhotographerId == photographerId && ap.Agent.User.IsDeleted == false)
-            .Select(ap=> new AgentInfoDto
+            .Select(ap=> new UserInfoDto
             {
                 Id = ap.Agent.Id,
                 Email = ap.Agent.User.Email ?? string.Empty,
