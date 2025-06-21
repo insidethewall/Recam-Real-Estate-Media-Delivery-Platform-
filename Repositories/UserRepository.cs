@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RecamSystemApi.Data;
+using RecamSystemApi.DTOs;
 using RecamSystemApi.Models;
 
 public class UserRepository : IUserRepository
@@ -25,7 +26,7 @@ public class UserRepository : IUserRepository
         await _context.Agents.AddAsync(agent);
         await _context.SaveChangesAsync();
     }
-        public async Task CreateAgentPhotographerAsync(string photographerId, string agentId)
+    public async Task CreateAgentPhotographerAsync(string photographerId, string agentId)
     {
         Photographer? photographer = await _context.PhotographyCompanies.FindAsync(photographerId);
         Agent? agent = await _context.Agents.FindAsync(agentId);
@@ -70,4 +71,33 @@ public class UserRepository : IUserRepository
             throw new Exception($"Error deleting AgentPhotographerCompany: {ex.Message}");
         }
     }
+
+    public async Task<ICollection<Agent>> GetAllAgentsAsync()
+    {
+        return await _context.Agents.ToListAsync();
+    }
+
+    public async Task<ICollection<Photographer>> GetAllPhotographersAsync()
+    {
+        return await _context.PhotographyCompanies.ToListAsync();
+    }
+
+    public async Task<ICollection<AgentInfoDto>> GetAgentsByPhotographerAsync(string photographerId)
+    {
+        if (string.IsNullOrEmpty(photographerId))
+            throw new ArgumentException("Photographer ID cannot be null or empty.", nameof(photographerId));
+        return await _context.AgentPhotographers
+            .Where(ap => ap.PhotographerId == photographerId && ap.Agent.User.IsDeleted == false)
+            .Select(ap=> new AgentInfoDto
+            {
+                Id = ap.Agent.Id,
+                Email = ap.Agent.User.Email ?? string.Empty,
+                CompanyName = ap.Agent.CompanyName,
+                FirstName = ap.Agent.AgentFirstName,
+                LastName = ap.Agent.AgentLastName,
+                AvatarUrl = ap.Agent.AvatarUrl
+             }).ToListAsync();
+    }
+    
+
 }

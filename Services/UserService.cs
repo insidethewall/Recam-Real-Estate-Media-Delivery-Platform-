@@ -97,7 +97,7 @@ public class UserService : IUserService
             return ApiResponse<object?>.Fail($"{currentRole} are not allowed to delete any users.", "403");
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
-        { 
+        {
             targetUser.IsDeleted = true; // Soft delete
             IdentityResult result = await _userManager.UpdateAsync(targetUser);
             if (!result.Succeeded)
@@ -116,8 +116,8 @@ public class UserService : IUserService
             }
             await transaction.CommitAsync();
             return ApiResponse<object?>.Success(targetUser, "User deleted successfully.");
-            
-        } 
+
+        }
         catch (System.Exception ex)
         {
             await transaction.RollbackAsync();
@@ -152,4 +152,23 @@ public class UserService : IUserService
             return ApiResponse<object?>.Fail($"Error adding agent: {ex.Message}", "500");
         }
     }
+
+    public async Task<ICollection<Agent>> GetAllAgentsAsync()
+    {
+        return await _userRepository.GetAllAgentsAsync();
+    }
+
+    public async Task<ICollection<Photographer>> GetAllPhotographersAsync()
+    {
+        return await _userRepository.GetAllPhotographersAsync();
+    }
+
+    public async Task<ICollection<AgentInfoDto>> GetAgentsByPhotographerAsync(string photographerId)
+    {
+        if (string.IsNullOrEmpty(photographerId))
+            throw new ArgumentException("Photographer ID cannot be null or empty.", nameof(photographerId));
+        return await _userRepository.GetAgentsByPhotographerAsync(photographerId);
+    }
+    
+
 }

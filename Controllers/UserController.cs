@@ -48,7 +48,7 @@ public class UserController : ControllerBase
             : BadRequest(response.ErrorMessage);
 
     }
-        
+
     // Endpoint to delete a user, only accessible by Admin
     [Authorize(Roles = "Admin")]
     [HttpDelete("deleteUser")]
@@ -66,6 +66,48 @@ public class UserController : ControllerBase
             ? Ok(response.Data)
             : BadRequest(response.ErrorMessage);
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("getAgents")]
+    public async Task<IActionResult> GetAllAgents()
+    {
+        var agents = await _userService.GetAllAgentsAsync();
+        if (agents == null || !agents.Any())
+        {
+            return NotFound("No agents found.");
+        }
+        return Ok(agents);
+
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("getPhotographers")]
+    public async Task<IActionResult> GetAllPhotographers()
+    {
+        var Photographers = await _userService.GetAllPhotographersAsync();
+        if (Photographers == null || !Photographers.Any())
+        {
+            return NotFound("No Photographers found.");
+        }
+        return Ok(Photographers);
+
+    }
+
+    [Authorize(Roles = "Photographer")]
+    [HttpGet("getAgentsByPhotographer")]
+    public async Task<IActionResult> GetAgentsByPhotographer()
+    {
+        string? currentUserId = User.FindFirst("UserId")?.Value;
+        Console.WriteLine($"Current User ID: {currentUserId}");
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return Unauthorized("Current user ID not found.");
+        }
+
+        var agents = await _userService.GetAgentsByPhotographerAsync(currentUserId);
+        return Ok(agents);
+    }
+
     
 
     
