@@ -1,13 +1,9 @@
-using System.Transactions;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.VisualBasic;
 using RecamSystemApi.Data;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Enums;
-using RecamSystemApi.Helper;
 using RecamSystemApi.Models;
-using RecamSystemApi.Utility;
 using IEmailSender = RecamSystemApi.Helper.IEmailSender;
 
 
@@ -20,7 +16,6 @@ public class AuthService : IAuthService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IAuthRepository _authRepository;
-    private readonly IEmailSender _emailSender;
     private readonly IMapper _mapper;
 
 
@@ -28,14 +23,14 @@ public class AuthService : IAuthService
     /// CTOR
     /// </summary>
     /// <param name="userManager"></param>
-    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository, IEmailSender emailSender, IMapper mapper)
+    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository,  IMapper mapper)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _jwtTokenService = jwtTokenService;
         _authRepository = authRepository;
-        _emailSender = emailSender;
+ 
         _mapper = mapper;
 
     }
@@ -89,7 +84,7 @@ public class AuthService : IAuthService
     // login for all roles
     public async Task<string> Login(LoginRequestDto loginRequest)
     {
-        var user = await _userManager.FindByEmailAsync(loginRequest.Email);
+        User? user = await _userManager.FindByEmailAsync(loginRequest.Email);
         if (user == null)
             throw new System.Exception("Invalid email or password.");
         if (user.IsDeleted)

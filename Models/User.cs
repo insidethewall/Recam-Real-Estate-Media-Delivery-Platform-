@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Microsoft.AspNetCore.Identity;
 
 
@@ -10,4 +11,7 @@ public class User : IdentityUser
 
     public Agent? Agent { get; set; }
     public Photographer? Photographer { get; set; }
+
+    public Collection<ListingCase> ListingCases { get; set; } = new Collection<ListingCase>();
+    public Collection<MediaAsset> MediaAssets { get; set; } = new Collection<MediaAsset>();
 }

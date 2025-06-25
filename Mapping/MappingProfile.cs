@@ -16,7 +16,9 @@ namespace RecamSystemApi.Mapping;
 
     IMappingExpression<Agent, RegisterRequestDto> AgentDtoMapper = CreateMap<Agent, RegisterRequestDto>();
     
-    
+    IMappingExpression<ListingCaseDto, ListingCase> ListingCaseDtoMapper = CreateMap<ListingCaseDto, ListingCase>()
+    .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid().ToString()))
+    .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
             
       }
     }

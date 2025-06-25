@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RecamSystemApi.DTOs;
 using RecamSystemApi.Models;
 using RecamSystemApi.Services;
+using RecamSystemApi.Utility;
 
 namespace RecamSystemApi.Controllers;
 
@@ -13,6 +16,45 @@ public class ListingCaseController : ControllerBase
     public ListingCaseController(IListingCasesService service)
     {
         _service = service;
+    }
+
+    [Authorize(Roles = "Admin, Photographer")]
+    [HttpPost("createlistingcase")]
+    public async Task<IActionResult> CreateListingCase([FromBody] ListingCaseDto listingCaseDto)
+    {
+        string? currentUserId = User.FindFirst("UserId")?.Value;
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            return Unauthorized("Current user ID not found.");
+        }
+        if (listingCaseDto == null)
+        {
+            return BadRequest("Listing case cannot be null.");
+        }
+
+        ApiResponse<object?> response = await _service.CreateListingCaseAsync(listingCaseDto, currentUserId);
+        return response.Succeed
+            ? StatusCode(201, response.Data)
+            : BadRequest(response.ErrorMessage);
+    }
+
+    [Authorize(Roles = "Admin, Photographer")]
+    [HttpPost("addAgentsToListingCase/{listingCaseId}")]
+    public async Task<IActionResult> AddAgentsToListingCase([FromBody] ICollection<string> agentIds, [FromRoute] string listingCaseId)
+    {
+        if (agentIds == null || !agentIds.Any())
+        {
+            return BadRequest("Agents IDs cannot be null or empty.");
+        }
+        if (string.IsNullOrEmpty(listingCaseId))
+        {
+            return BadRequest("Listing case ID cannot be null or empty.");
+        }
+
+        ApiResponse<object?> response = await _service.AddAgentsToListingCaseAsync(agentIds, listingCaseId);
+        return response.Succeed
+            ? Ok(response.Data)
+            : BadRequest(response.ErrorMessage);
     }
 
     [HttpGet]

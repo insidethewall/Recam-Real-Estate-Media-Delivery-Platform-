@@ -62,6 +62,7 @@ public class Program
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         //service
         builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
+        builder.Services.AddScoped<IAgentListingCaseValidator, AgentListingCaseValidator>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
