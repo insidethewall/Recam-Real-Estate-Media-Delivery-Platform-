@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +70,12 @@ public class Program
 
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
+        builder.Services.AddSingleton(x =>
+        {
+            var config = x.GetRequiredService<IConfiguration>();
+            var connectionString = config["AzureBlobStorage:ConnectionString"];
+            return new BlobServiceClient(connectionString);
+        });
 
         builder.Services.AddTransient<IEmailSender, EmailSender>();
 

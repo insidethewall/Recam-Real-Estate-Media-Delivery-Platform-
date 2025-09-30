@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecamSystemApi.DTOs;
@@ -56,6 +57,26 @@ public class ListingCaseController : ControllerBase
             ? Ok(response.Data)
             : BadRequest(response.ErrorMessage);
     }
+
+    [Authorize(Roles = "Agent")]
+    [HttpGet("getListingCasesByAgent/{userId}")]
+    public async Task<IActionResult> GetAllListingCasesByAgentAsync([FromRoute] string userId)
+    {
+            ApiResponse<ICollection<ListingCase>> response = await _service.GetAllListingCasesByCreatorAsync(userId);
+            return response.Succeed
+            ? Ok(response.Data)
+            : BadRequest(response.ErrorMessage);
+    } 
+
+    [Authorize(Roles = "Admin, Photographer")]
+    [HttpGet("getListingCasesByCreator/{userId}")]
+     public async Task<IActionResult> GetAllListingCasesByCreatorAsync([FromRoute] string userId)
+    {
+            ApiResponse<ICollection<ListingCase>> response = await _service.GetAllListingCasesByCreatorAsync(userId);
+            return response.Succeed
+            ? Ok(response.Data)
+            : BadRequest(response.ErrorMessage);
+    } 
 
     [HttpGet]
     public async Task<ActionResult<ICollection<ListingCase>>> GetAllListingCasesAsync()

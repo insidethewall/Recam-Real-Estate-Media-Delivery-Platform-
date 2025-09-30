@@ -5,9 +5,10 @@ using RecamSystemApi.Utility;
 public interface IListingCasesRepository
 {
     Task<ICollection<ListingCase>> GetAllListingCasesAsync();
-
     Task<ApiResponse<object?>> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User user);
     Task<ApiResponse<object?>> CreateAgentListingCaseAsync(Agent agent, ListingCase listingCase);
+    Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByUserAsync(User currentUser);
+    ApiResponse<ICollection<ListingCase>> GetAllListingCasesByAgentAsync(Agent agent);
 }
 
  

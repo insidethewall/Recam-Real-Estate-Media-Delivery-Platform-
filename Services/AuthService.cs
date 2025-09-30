@@ -30,7 +30,6 @@ public class AuthService : IAuthService
         _roleManager = roleManager;
         _jwtTokenService = jwtTokenService;
         _authRepository = authRepository;
- 
         _mapper = mapper;
 
     }

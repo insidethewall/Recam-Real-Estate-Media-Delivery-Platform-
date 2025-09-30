@@ -68,6 +68,25 @@ public class ListingCasesRepository : IListingCasesRepository
    
     }
 
+    public async Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByUserAsync(User currentUser)
+    {
+        ICollection<ListingCase> listingCases = await _dbContext.ListingCases
+            .Where(lc => lc.UserId == currentUser.Id && !lc.IsDeleted)
+            .ToListAsync();
+        
+        return ApiResponse< ICollection< ListingCase >>.Success(listingCases, "Listing cases retrieved successfully.");
+    }
+
+    public ApiResponse<ICollection<ListingCase>> GetAllListingCasesByAgentAsync(Agent agent)
+    {
+        ICollection<ListingCase> listingCases = agent.AgentListingCases
+            .Where(alc => !alc.ListingCase.IsDeleted)
+            .Select(alc => alc.ListingCase)
+            .ToList();
+        
+        return ApiResponse< ICollection< ListingCase >>.Success(listingCases, "Listing cases retrieved successfully.");
+    }
+
     public async Task<ICollection<ListingCase>> GetAllListingCasesAsync()
     {
         return await _dbContext.ListingCases.ToListAsync();

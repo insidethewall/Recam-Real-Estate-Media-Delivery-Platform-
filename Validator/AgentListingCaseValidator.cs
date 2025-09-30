@@ -20,7 +20,17 @@ public class AgentListingCaseValidator : IAgentListingCaseValidator
       
     }
 
-    public async Task<ApiResponse<Agent?>> ValidateAgentAsync(string agentId, string listingCaseId)
+    public async Task<ApiResponse<object?>> ValidateAgentAndListingCaseAsync(string agentId, string listingCaseId)
+    {
+        var exists = await _context.AgentListingCases
+            .AnyAsync(alc => alc.AgentId == agentId && alc.ListingCaseId == listingCaseId);
+
+        if (exists)
+            return ApiResponse<object?>.Fail($"Agent with ID {agentId} is already added to the listing case.", "400");
+        return ApiResponse<object?>.Success(null, "Agent and listing case validation successful.");
+    }
+
+    public async Task<ApiResponse<Agent?>> ValidateAgentAsync(string agentId)
     {
         var user = await _userManager.FindByIdAsync(agentId);
         if (user == null)
@@ -37,13 +47,6 @@ public class AgentListingCaseValidator : IAgentListingCaseValidator
         var agent = user.Agent;
         if (agent == null)
             return ApiResponse<Agent?>.Fail($"User with ID {agentId} does not have an associated Agent entity.", "403");
-
-        var exists = await _context.AgentListingCases
-            .AnyAsync(alc => alc.AgentId == agent.Id && alc.ListingCaseId == listingCaseId);
-
-        if (exists)
-            return ApiResponse<Agent?>.Fail($"Agent with ID {agentId} is already added to the listing case.", "400");
-
         return ApiResponse<Agent?>.Success(agent);
     }
 

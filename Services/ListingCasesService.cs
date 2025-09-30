@@ -13,7 +13,7 @@ public class ListingCasesService : IListingCasesService
     private readonly UserManager<User> _userManager;
 
     private readonly ReacmDbContext _context;
-     private readonly IAgentListingCaseValidator _validator;
+    private readonly IAgentListingCaseValidator _validator;
     public ListingCasesService(IListingCasesRepository repository, UserManager<User> userManager, ReacmDbContext context, IAgentListingCaseValidator validator)
     {
         _repository = repository;
@@ -50,10 +50,10 @@ public class ListingCasesService : IListingCasesService
             return ApiResponse<object?>.Fail($"Error creating listing case: {ex.Message}", "500");
         }
     }
-    
+
     public async Task<ApiResponse<object?>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId)
     {
-            
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
@@ -66,7 +66,10 @@ public class ListingCasesService : IListingCasesService
 
             foreach (string agentId in agentIds)
             {
-                 var agentResult = await _validator.ValidateAgentAsync(agentId, listingCaseId);
+                ApiResponse<object?> validationResponse = await _validator.ValidateAgentAndListingCaseAsync(agentId, listingCaseId);
+                if (!validationResponse.Succeed)
+                    return ApiResponse<object?>.Fail(validationResponse.Message ?? "Agent and listing case validation failed.", validationResponse.ErrorCode);
+                var agentResult = await _validator.ValidateAgentAsync(agentId);
                 if (!agentResult.Succeed)
                     return ApiResponse<object?>.Fail(agentResult.Message ?? "listing case Unknown error.", agentResult.ErrorCode);
 
@@ -80,6 +83,29 @@ public class ListingCasesService : IListingCasesService
         {
             return ApiResponse<object?>.Fail($"Error adding agents to listing case: {ex.Message}", "500");
         }
+    }
+    
+    public async Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByAgentAsync(string currentUserId)
+    {
+        var agentResult = await _validator.ValidateAgentAsync(currentUserId);
+        if (!agentResult.Succeed)
+            return ApiResponse<ICollection<ListingCase>>.Fail(agentResult.Message ?? "Agent validation failed.", agentResult.ErrorCode);
+        Agent agent = agentResult.Data!;      
+        return  _repository.GetAllListingCasesByAgentAsync(agent);
+    }
+    
+    public async Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByCreatorAsync(string currentUserId)
+    {
+        User? currentUser = await _userManager.FindByIdAsync(currentUserId);
+        if (currentUser == null)
+        {
+            return ApiResponse<ICollection<ListingCase>>.Fail("Current user not found.", "404");
+        }
+        if (currentUser.IsDeleted)
+        {
+            return ApiResponse<ICollection<ListingCase>>.Fail("Current user is deleted.", "403");
+        }
+        return await _repository.GetAllListingCasesByUserAsync(currentUser);
     }
 
 }
