@@ -40,6 +40,24 @@ public class ListingCaseController : ControllerBase
     }
 
     [Authorize(Roles = "Admin, Photographer")]
+    [HttpPut("update/{listingcaseId}")]
+    public async Task<IActionResult> UpdateListingCase([FromBody] UpdateListingCaseDto listingCaseDto, [FromRoute] string listingcaseId) { 
+        if (listingCaseDto == null)
+        {
+            return BadRequest("Listing case cannot be null.");
+        }
+        if (string.IsNullOrEmpty(listingcaseId))
+        {
+            return BadRequest("Listing case ID cannot be null or empty.");
+        }
+
+        ApiResponse<UpdateListingCaseDto?> response = await _service.UpdateListingCaseAsync(listingCaseDto, listingcaseId);
+        return response.Succeed
+            ? Ok(response.Data)
+            : BadRequest(response.ErrorMessage);
+    }    
+
+    [Authorize(Roles = "Admin, Photographer")]
     [HttpPost("addAgentsToListingCase/{listingCaseId}")]
     public async Task<IActionResult> AddAgentsToListingCase([FromBody] ICollection<string> agentIds, [FromRoute] string listingCaseId)
     {
@@ -62,7 +80,7 @@ public class ListingCaseController : ControllerBase
     [HttpGet("getListingCasesByAgent/{userId}")]
     public async Task<IActionResult> GetAllListingCasesByAgentAsync([FromRoute] string userId)
     {
-            ApiResponse<ICollection<ListingCase>> response = await _service.GetAllListingCasesByCreatorAsync(userId);
+            ApiResponse<ICollection<ListingCase>> response = await _service.GetAllListingCasesByAgentAsync(userId);
             return response.Succeed
             ? Ok(response.Data)
             : BadRequest(response.ErrorMessage);

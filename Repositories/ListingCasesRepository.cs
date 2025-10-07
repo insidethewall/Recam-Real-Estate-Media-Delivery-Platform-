@@ -15,6 +15,30 @@ public class ListingCasesRepository : IListingCasesRepository
         _dbContext = dbContext;
         _mapper = mapper;
     }
+    
+    public async Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId)
+    {
+        try
+        {
+            ListingCase? existingListingCase = await _dbContext.ListingCases
+                .FirstOrDefaultAsync(lc => lc.Id == listingCaseId && !lc.IsDeleted);
+            if (existingListingCase == null)
+            {
+                return ApiResponse<UpdateListingCaseDto?>.Fail("Listing case not found.", "404");
+            }
+
+             _mapper.Map(listingCaseDto, existingListingCase);
+            await _dbContext.SaveChangesAsync();
+
+            UpdateListingCaseDto updatedDto = _mapper.Map<UpdateListingCaseDto>(existingListingCase);
+            return ApiResponse<UpdateListingCaseDto?>.Success(updatedDto, "Listing case updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<UpdateListingCaseDto?>.Fail($"Error updating listing case: {ex.Message}", "500");
+        }
+  
+    }
 
     public async Task<ApiResponse<object?>> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User user)
     {
@@ -39,7 +63,7 @@ public class ListingCasesRepository : IListingCasesRepository
         {
             return ApiResponse<object?>.Fail($"Error creating listing case: {ex.Message}", "500");
         }
-  
+
     }
 
     public async Task<ApiResponse<object?>> CreateAgentListingCaseAsync(Agent agent, ListingCase listingCase)

@@ -23,7 +23,7 @@ public class MediaAssetService : IMediaAssetService
             return ApiResponse<MediaAssetDto?>.Fail($"User with ID {userId} is deleted.", "403");
         if (file == null || file.Length == 0)
             return ApiResponse<MediaAssetDto?>.Fail("File cannot be null or empty.", "400");
-        
+
         var blobUrl = await _azureBlobStorageService.UploadFileAsync(file, "media-assets");
 
     }

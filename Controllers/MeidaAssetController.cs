@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace RecamSystemApi.Controllers;
@@ -13,6 +14,8 @@ public class MediaAssetController : ControllerBase
         _mediaAssetService = mediaAssetService;
     }
 
+
+    [Authorize(Roles = "Admin, Photographer")]
     [HttpPost("upload")]
     public async Task<IActionResult> UploadMediaAsset([FromForm] ICollection<IFormFile> files, [FromQuery] string userId, [FromQuery] string listingCaseId)
     {

@@ -51,6 +51,20 @@ public class ListingCasesService : IListingCasesService
         }
     }
 
+    public async Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId)
+    {
+        try
+        {
+            await _repository.UpdateListingCaseAsync(listingCaseDto, listingCaseId);
+            return ApiResponse<UpdateListingCaseDto?>.Success(listingCaseDto, "Listing case updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<UpdateListingCaseDto?>.Fail($"Error updating listing case: {ex.Message}", "500");
+        }
+  
+    }
+
     public async Task<ApiResponse<object?>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId)
     {
 
