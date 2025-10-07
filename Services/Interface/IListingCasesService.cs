@@ -11,6 +11,7 @@ public interface IListingCasesService
     Task<ApiResponse<object?>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId);
 
     Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId);
+    Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId);
     Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByAgentAsync(string currentUserId);
     Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByCreatorAsync(string currentUserId);
 

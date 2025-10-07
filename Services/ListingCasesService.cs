@@ -65,6 +65,25 @@ public class ListingCasesService : IListingCasesService
   
     }
 
+    public async Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId)
+    {
+        try
+        {
+            ApiResponse<ListingCase?> listingCaseResponse = await _validator.ValidateListingCaseAsync(listingCaseId);
+            if (!listingCaseResponse.Succeed)
+                return ApiResponse<ListingCaseStatusDto?>.Fail(listingCaseResponse.Message ?? "listing case Unknown error.", listingCaseResponse.ErrorCode);
+
+            ListingCase listingCase = listingCaseResponse.Data!;
+            ApiResponse<ListingCaseStatusDto?> response = await _repository.ChangeListingCaseStatusAsync(newStatus, listingCase);
+            
+            return ApiResponse<ListingCaseStatusDto?>.Success(response.Data, "Listing case status updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<ListingCaseStatusDto?>.Fail($"Error updating listing case status: {ex.Message}", "500");
+        }
+    }
+
     public async Task<ApiResponse<object?>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId)
     {
 

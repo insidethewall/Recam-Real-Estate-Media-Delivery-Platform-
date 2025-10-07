@@ -40,6 +40,28 @@ public class ListingCasesRepository : IListingCasesRepository
   
     }
 
+    public async Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, ListingCase listingCase)
+    {
+        try
+        {
+
+            listingCase.ListcaseStatus = newStatus;
+            await _dbContext.SaveChangesAsync();
+
+            ListingCaseStatusDto statusDto = new ListingCaseStatusDto
+            {
+                Id = listingCase.Id,
+                title = listingCase.Title,
+                Status = listingCase.ListcaseStatus
+            };
+            return ApiResponse<ListingCaseStatusDto?>.Success(statusDto, "Listing case status updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<ListingCaseStatusDto?>.Fail($"Error updating listing case status: {ex.Message}", "500");
+        }
+    }
+
     public async Task<ApiResponse<object?>> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User user)
     {
         if (listingCaseDto == null)

@@ -58,6 +58,20 @@ public class ListingCaseController : ControllerBase
     }    
 
     [Authorize(Roles = "Admin, Photographer")]
+    [HttpPatch("{listingcaseId}/status")]
+    public async Task<IActionResult> ChangeListingCaseStatus([FromBody] ListcaseStatus listingCaseStatus, [FromRoute] string listingcaseId) { 
+        if (string.IsNullOrEmpty(listingcaseId))
+        {
+            return BadRequest("Listing case ID cannot be null or empty.");
+        }
+
+        ApiResponse<ListingCaseStatusDto?> response = await _service.ChangeListingCaseStatusAsync(listingCaseStatus, listingcaseId);
+        return response.Succeed
+            ? Ok(response.Data)
+            : BadRequest(response.ErrorMessage);
+    }    
+
+    [Authorize(Roles = "Admin, Photographer")]
     [HttpPost("addAgentsToListingCase/{listingCaseId}")]
     public async Task<IActionResult> AddAgentsToListingCase([FromBody] ICollection<string> agentIds, [FromRoute] string listingCaseId)
     {
