@@ -110,6 +110,21 @@ public class ListingCaseController : ControllerBase
             : BadRequest(response.ErrorMessage);
     } 
 
+    [Authorize(Roles = "Admin, Photographer")]
+    [HttpDelete("deleteListingCase/{listingCaseId}")]
+    public async Task<IActionResult> DeleteListingCase([FromRoute] string listingCaseId)
+    {
+        if (string.IsNullOrEmpty(listingCaseId))
+        {
+            return BadRequest("Listing case ID cannot be null or empty.");
+        }
+
+        ApiResponse<ListingCase?> response = await _service.DeleteListingCase(listingCaseId);
+        return response.Succeed
+            ? Ok(response.Data)
+            : BadRequest(response.ErrorMessage);
+    }
+
     [HttpGet]
     public async Task<ActionResult<ICollection<ListingCase>>> GetAllListingCasesAsync()
     {

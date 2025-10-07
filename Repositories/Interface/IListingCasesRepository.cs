@@ -10,7 +10,8 @@ public interface IListingCasesRepository
     Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByUserAsync(User currentUser);
     ApiResponse<ICollection<ListingCase>> GetAllListingCasesByAgentAsync(Agent agent);
     Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId);
-   Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus status, ListingCase listingCase);
+    Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus status, ListingCase listingCase);
+    Task<ApiResponse<ListingCase>> DeleteListingCaseAsync(ListingCase listingCase);
 }
 
  

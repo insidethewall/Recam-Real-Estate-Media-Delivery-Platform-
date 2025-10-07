@@ -14,5 +14,6 @@ public interface IListingCasesService
     Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId);
     Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByAgentAsync(string currentUserId);
     Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByCreatorAsync(string currentUserId);
+    Task<ApiResponse<ListingCase>> DeleteListingCaseAsync(string listingCaseId);
 
 }

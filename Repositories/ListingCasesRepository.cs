@@ -15,7 +15,7 @@ public class ListingCasesRepository : IListingCasesRepository
         _dbContext = dbContext;
         _mapper = mapper;
     }
-    
+
     public async Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId)
     {
         try
@@ -27,7 +27,7 @@ public class ListingCasesRepository : IListingCasesRepository
                 return ApiResponse<UpdateListingCaseDto?>.Fail("Listing case not found.", "404");
             }
 
-             _mapper.Map(listingCaseDto, existingListingCase);
+            _mapper.Map(listingCaseDto, existingListingCase);
             await _dbContext.SaveChangesAsync();
 
             UpdateListingCaseDto updatedDto = _mapper.Map<UpdateListingCaseDto>(existingListingCase);
@@ -37,7 +37,7 @@ public class ListingCasesRepository : IListingCasesRepository
         {
             return ApiResponse<UpdateListingCaseDto?>.Fail($"Error updating listing case: {ex.Message}", "500");
         }
-  
+
     }
 
     public async Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, ListingCase listingCase)
@@ -91,7 +91,7 @@ public class ListingCasesRepository : IListingCasesRepository
     public async Task<ApiResponse<object?>> CreateAgentListingCaseAsync(Agent agent, ListingCase listingCase)
     {
         try
-        { 
+        {
             AgentListingCase agentListingCase = new AgentListingCase
             {
                 AgentId = agent.Id,
@@ -106,12 +106,13 @@ public class ListingCasesRepository : IListingCasesRepository
             _dbContext.AgentListingCases.Add(agentListingCase);
             await _dbContext.SaveChangesAsync();
             return ApiResponse<object?>.Success(null, "Agents added to listing case successfully.");
-            
-        } catch (Exception ex)
+
+        }
+        catch (Exception ex)
         {
             return ApiResponse<object?>.Fail($"Error adding agents to listing case: {ex.Message}", "500");
         }
-   
+
     }
 
     public async Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByUserAsync(User currentUser)
@@ -119,8 +120,8 @@ public class ListingCasesRepository : IListingCasesRepository
         ICollection<ListingCase> listingCases = await _dbContext.ListingCases
             .Where(lc => lc.UserId == currentUser.Id && !lc.IsDeleted)
             .ToListAsync();
-        
-        return ApiResponse< ICollection< ListingCase >>.Success(listingCases, "Listing cases retrieved successfully.");
+
+        return ApiResponse<ICollection<ListingCase>>.Success(listingCases, "Listing cases retrieved successfully.");
     }
 
     public ApiResponse<ICollection<ListingCase>> GetAllListingCasesByAgentAsync(Agent agent)
@@ -129,13 +130,23 @@ public class ListingCasesRepository : IListingCasesRepository
             .Where(alc => !alc.ListingCase.IsDeleted)
             .Select(alc => alc.ListingCase)
             .ToList();
-        
-        return ApiResponse< ICollection< ListingCase >>.Success(listingCases, "Listing cases retrieved successfully.");
+
+        return ApiResponse<ICollection<ListingCase>>.Success(listingCases, "Listing cases retrieved successfully.");
     }
 
     public async Task<ICollection<ListingCase>> GetAllListingCasesAsync()
     {
         return await _dbContext.ListingCases.ToListAsync();
+    }
+    
+    public async Task<ApiResponse<ListingCase>> DeleteListingCaseAsync(ListingCase listingCase)
+    {
+      
+        listingCase.IsDeleted = true;
+        _dbContext.ListingCases.Update(listingCase);
+        await _dbContext.SaveChangesAsync();
+        return ApiResponse<ListingCase>.Success(listingCase, "Listing case deleted successfully.");
+  
     }
     
 }
