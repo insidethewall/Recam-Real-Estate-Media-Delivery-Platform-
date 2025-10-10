@@ -17,14 +17,15 @@ public class MediaAssetController : ControllerBase
 
     [Authorize(Roles = "Admin, Photographer")]
     [HttpPost("upload")]
-    public async Task<IActionResult> UploadMediaAsset([FromForm] ICollection<IFormFile> files, [FromQuery] string userId, [FromQuery] string listingCaseId)
+    public async Task<IActionResult> UploadMediaAssetAsync
+    ([FromForm] ICollection<IFormFile> files, [FromQuery] string userId, [FromQuery] string listingCaseId, [FromQuery] MediaType mediaType)
     {
         if (files == null || files.Count == 0)
         {
             return BadRequest("File cannot be null or empty.");
         }
 
-        var response = await _mediaAssetService.UploadMediaAssetAsync(file, userId, listingCaseId);
+        var response = await _mediaAssetService.UploadMediaAssetsBulkAsync (files, userId, listingCaseId, mediaType);
         if (response.Succeed)
         {
             return Ok(response.Data);

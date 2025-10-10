@@ -114,6 +114,7 @@ public class ListingCasesService : IListingCasesService
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             return ApiResponse<object?>.Fail($"Error adding agents to listing case: {ex.Message}", "500");
         }
     }

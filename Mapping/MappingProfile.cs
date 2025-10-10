@@ -20,18 +20,17 @@ public class MappingProfile: Profile
       .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid().ToString()))
       .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
-    CreateMap<UpdateListingCaseDto, ListingCase>()
-        .ForMember(dest => dest.Id, opt => opt.Ignore())
-        .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-        .ForMember(dest => dest.UserId, opt => opt.Ignore())
-        .ForMember(dest => dest.User, opt => opt.Ignore())
-        .ForMember(dest => dest.AgentListingCases, opt => opt.Ignore())
-        .ForMember(dest => dest.MediaAssets, opt => opt.Ignore())
-        .ForMember(dest => dest.CaseContacts, opt => opt.Ignore());
+      IMappingExpression<UpdateListingCaseDto, ListingCase> UpdateListingCaseDtoMapper = CreateMap<UpdateListingCaseDto, ListingCase>()
+          .ForMember(dest => dest.Id, opt => opt.Ignore())
+          .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+          .ForMember(dest => dest.UserId, opt => opt.Ignore())
+          .ForMember(dest => dest.User, opt => opt.Ignore())
+          .ForMember(dest => dest.AgentListingCases, opt => opt.Ignore())
+          .ForMember(dest => dest.MediaAssets, opt => opt.Ignore())
+          .ForMember(dest => dest.CaseContacts, opt => opt.Ignore());
 
       IMappingExpression<MediaAssetDto, MediaAsset> MediaAssetDtoMapper = CreateMap<MediaAssetDto, MediaAsset>()
       .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid().ToString()))
       .ForMember(dest => dest.UploadedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
-              
         }
     }

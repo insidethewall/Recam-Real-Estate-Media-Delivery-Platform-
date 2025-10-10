@@ -28,22 +28,23 @@ namespace CourseManagementAPI.Services
                 throw new InvalidOperationException("File size exceeds the 10 MB limit.");
         }
 
-        public async Task<List<string>> UploadFileBulkAsync(IEnumerable<(IFormFile file, string pageName)> files)
+        public async Task<IDictionary<string, string>> UploadFileBulkAsync(IEnumerable<(IFormFile file, string mediaType)> files)
         {
-            var uploadedUrls = new List<string>();
+            var uploadedUrls = new Dictionary<string, string>();
 
-            foreach (var (file, pageName) in files)
+            foreach (var (file, mediaType) in files)
             {
+
                 try
                 {
-                    var uploadedUrl = await UploadFileAsync(file, pageName);
-                    uploadedUrls.Add(uploadedUrl);
+                    var uploadedUrl = await UploadFileAsync(file, mediaType);
+                    uploadedUrls[$"{Guid.NewGuid()}_{file.FileName}_{mediaType}"] = uploadedUrl;
 
-                    Console.WriteLine($"Uploaded file for page: {pageName}, URL: {uploadedUrl}");
+                    Console.WriteLine($"Uploaded file for page: {mediaType}, URL: {uploadedUrl}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to upload file for page: {pageName}. Error: {ex.Message}");
+                    Console.WriteLine($"Failed to upload file for page: {mediaType}. Error: {ex.Message}");
                 }
             }
 

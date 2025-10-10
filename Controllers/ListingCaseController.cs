@@ -119,7 +119,7 @@ public class ListingCaseController : ControllerBase
             return BadRequest("Listing case ID cannot be null or empty.");
         }
 
-        ApiResponse<ListingCase?> response = await _service.DeleteListingCase(listingCaseId);
+        ApiResponse<ListingCase> response = await _service.DeleteListingCaseAsync(listingCaseId);
         return response.Succeed
             ? Ok(response.Data)
             : BadRequest(response.ErrorMessage);
