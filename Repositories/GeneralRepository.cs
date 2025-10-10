@@ -3,23 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using RecamSystemApi.Data;
 
-public class GeneralRepository<T> : IGeneralRepository<T> where T : class
+public class GeneralRepository : IGeneralRepository
 {
     private readonly ReacmDbContext _context;
-    protected readonly DbSet<T> _dbSet;
+
 
     protected readonly IMapper _mapper;
     public GeneralRepository(ReacmDbContext context, IMapper mapper)
     {
         _context = context;
-        _dbSet = _context.Set<T>();
         _mapper = mapper;
     }
 
-    public async Task AddAsync(T entity)
-    {
-        await _dbSet.AddAsync(entity);
-    }
+ 
 
     public async Task<IDbContextTransaction> BeginTransactionAsync()
     {

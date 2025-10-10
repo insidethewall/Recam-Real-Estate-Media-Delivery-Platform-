@@ -8,11 +8,11 @@ public class MediaAssetService : IMediaAssetService
     private readonly IAzureBlobStorageService _azureBlobStorageService;
     private readonly IMediaAssetRepository _mediaAssetRepository;
 
-    private readonly IGeneralRepository<MediaAsset> _generalRepository;
+    private readonly IGeneralRepository _generalRepository;
     private readonly IAgentListingCaseValidator _agentListingCaseValidator;
     private readonly UserManager<User> _userManager;
 
-    public MediaAssetService(IGeneralRepository<MediaAsset> generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager)
+    public MediaAssetService(IGeneralRepository generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager)
     {
         _generalRepository = generalRepository;
         _azureBlobStorageService = azureBlobStorageService;
@@ -34,7 +34,7 @@ public class MediaAssetService : IMediaAssetService
                 return ApiResponse<ICollection<MediaAssetDto?>>.Fail($"User with ID {userId} is deleted.", "403");
             if (files == null || files.Count == 0)
                 return ApiResponse<ICollection<MediaAssetDto?>>.Fail("File cannot be null or empty.", "400");
-                
+
             ApiResponse<ListingCase?> listingCaseResponse = await _agentListingCaseValidator.ValidateListingCaseAsync(userId);
             if (!listingCaseResponse.Succeed || listingCaseResponse.Data == null)
                 return ApiResponse<ICollection<MediaAssetDto?>>.Fail(listingCaseResponse.ErrorMessage ?? "Unknown error occurred.", listingCaseResponse.ErrorCode);
@@ -68,7 +68,7 @@ public class MediaAssetService : IMediaAssetService
                 mediaAsset.User = user;
                 user.MediaAssets.Add(mediaAsset);
                 listingCase.MediaAssets.Add(mediaAsset);
-                await _generalRepository.AddAsync(mediaAsset);
+                await _mediaAssetRepository.AddMediaAssetAsync(mediaAsset);
                 await _generalRepository.SaveChangesAsync();
                 await transaction.CommitAsync();
                 uploadedMediaAssets.Add(mediaAssetDto);

@@ -1,7 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
-namespace CourseManagementAPI.Services
+namespace RecamSystemApi.Services
 {
 
     public class AzureBlobStorageService : IAzureBlobStorageService
@@ -42,7 +42,7 @@ namespace CourseManagementAPI.Services
 
                     Console.WriteLine($"Uploaded file for page: {mediaType}, URL: {uploadedUrl}");
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
                     Console.WriteLine($"Failed to upload file for page: {mediaType}. Error: {ex.Message}");
                 }
@@ -70,7 +70,7 @@ namespace CourseManagementAPI.Services
 
                 return blobClient.Uri.ToString();
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 throw;
@@ -109,7 +109,7 @@ namespace CourseManagementAPI.Services
 
                 return (download.Content, download.ContentType, fileName);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Console.WriteLine($"An error occurred while downloading: {ex.Message}");
                 throw;
@@ -140,7 +140,7 @@ namespace CourseManagementAPI.Services
                 var response = await blobClient.DeleteAsync();
                 return response.Status == 202;
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Console.WriteLine($"An error occurred while deleting: {ex.Message}");
                 throw;

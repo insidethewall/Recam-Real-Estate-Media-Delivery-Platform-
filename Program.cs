@@ -61,12 +61,15 @@ public class Program
         builder.Services.AddScoped<IListingCasesRepository, ListingCasesRepository>();
         builder.Services.AddScoped<IAuthRepository, AuthRepository>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IGeneralRepository, GeneralRepository>();
         //service
         builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
         builder.Services.AddScoped<IAgentListingCaseValidator, AgentListingCaseValidator>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+        builder.Services.AddScoped<IMediaAssetService, MediaAssetService>();
+        builder.Services.AddScoped<IAzureBlobStorageService, AzureBlobStorageService>();
 
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
