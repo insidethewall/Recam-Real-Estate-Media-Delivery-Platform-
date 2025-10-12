@@ -61,17 +61,10 @@ public class ListingCasesRepository : IListingCasesRepository
             return ApiResponse<ListingCaseStatusDto?>.Fail($"Error updating listing case status: {ex.Message}", "500");
         }
     }
+ 
 
     public async Task<ApiResponse<object?>> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User user)
     {
-        if (listingCaseDto == null)
-        {
-            throw new ArgumentNullException(nameof(listingCaseDto), "Listing case cannot be null.");
-        }
-        if (user == null)
-        {
-            throw new ArgumentNullException(nameof(user), "User cannot be null.");
-        }
         try
         {
             ListingCase listingCase = _mapper.Map<ListingCase>(listingCaseDto);

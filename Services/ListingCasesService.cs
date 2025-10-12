@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using RecamSystemApi.Data;
 using RecamSystemApi.DTOs;
-using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
 using RecamSystemApi.Services;
 using RecamSystemApi.Utility;
