@@ -57,10 +57,17 @@ public class Program
                 };
             });
 
+        // solve circular reference problem
+        builder.Services.AddControllers().AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+        });
+
         //repository
         builder.Services.AddScoped<IListingCasesRepository, ListingCasesRepository>();
         builder.Services.AddScoped<IAuthRepository, AuthRepository>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IMediaAssetRepository, MediaAssetRepository>();
         builder.Services.AddScoped<IGeneralRepository, GeneralRepository>();
         //service
         builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
@@ -89,17 +96,42 @@ public class Program
             options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Version = "v1",
+                    Title = "Reacm API",
+                    Description = "An ASP.NET Core Web API for Reacm System",
+                    Contact = new OpenApiContact
                     {
-                        Version = "v1",
-                        Title = "Reacm API",
-                        Description = "An ASP.NET Core Web API for Reacm System",
-                        Contact = new OpenApiContact
-                        {
-                            Name = "Toby Ren",
-                            Url = new Uri("mailto:rxy550569417@gmail.com")
-                        },
-                    }
+                        Name = "Toby Ren",
+                        Url = new Uri("mailto:rxy550569417@gmail.com")
+                    },
+                }
                 );
+
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter your JWT token below prefixed with **Bearer**. Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`"
+                });
+                
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
             }
         );
 

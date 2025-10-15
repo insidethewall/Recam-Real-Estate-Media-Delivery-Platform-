@@ -63,7 +63,7 @@ public class MediaAssetService : IMediaAssetService
                     ListingCaseId = listingCase.Id,
                 };
 
-                MediaAsset mediaAsset = _generalRepository.MapDto<MediaAsset, MediaAssetDto>(mediaAssetDto);
+                MediaAsset mediaAsset = _generalRepository.MapDto<MediaAssetDto, MediaAsset>(mediaAssetDto);
                 mediaAsset.ListingCase = listingCase;
                 mediaAsset.User = user;
                 user.MediaAssets.Add(mediaAsset);

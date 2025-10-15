@@ -14,9 +14,9 @@ public class MediaAssetRepository : IMediaAssetRepository
         _mapper = mapper;
     }
 
-    public Task AddMediaAssetAsync(MediaAsset mediaAsset)
+    public async Task AddMediaAssetAsync(MediaAsset mediaAsset)
     {
-        _dbContext.MediaAssets.Add(mediaAsset);
-        return Task.CompletedTask;
+        await _dbContext.MediaAssets.AddAsync(mediaAsset);
+        
     }
 }

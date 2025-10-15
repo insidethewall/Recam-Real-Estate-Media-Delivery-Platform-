@@ -27,9 +27,9 @@ public class GeneralRepository : IGeneralRepository
         await _context.SaveChangesAsync();
     }
     
-    public TEntity MapDto<TEntity, TDto>(TDto dto)
+    public TDestination MapDto<TSource, TDestination>(TSource source)
     {
-        return _mapper.Map<TEntity>(dto);
+        return _mapper.Map<TDestination>(source);
     }
 
 

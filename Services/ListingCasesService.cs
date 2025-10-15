@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using RecamSystemApi.Data;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Models;
 using RecamSystemApi.Services;
@@ -7,18 +6,18 @@ using RecamSystemApi.Utility;
 
 public class ListingCasesService : IListingCasesService
 {
+    private readonly IGeneralRepository _generalRepository;
     private readonly IListingCasesRepository _repository;
     private readonly UserManager<User> _userManager;
 
-    private readonly ReacmDbContext _context;
+    
     private readonly IAgentListingCaseValidator _validator;
-    public ListingCasesService(IListingCasesRepository repository, UserManager<User> userManager, ReacmDbContext context, IAgentListingCaseValidator validator)
+    public ListingCasesService(IGeneralRepository generalRepository, IListingCasesRepository repository, UserManager<User> userManager, IAgentListingCaseValidator validator)
     {
+        _generalRepository = generalRepository;
         _repository = repository;
         _userManager = userManager;
-        _context = context;
         _validator = validator;
-
     }
 
     public async Task<ICollection<ListingCase>> GetAllListingCasesAsync()
@@ -26,6 +25,8 @@ public class ListingCasesService : IListingCasesService
         return await _repository.GetAllListingCasesAsync();
     }
 
+
+// TODO: need to refactor 
     public async Task<ApiResponse<object?>> CreateListingCaseAsync(ListingCaseDto listingCaseDto, string currentUserId)
     {
         User? currentUser = await _userManager.FindByIdAsync(currentUserId);
@@ -37,24 +38,40 @@ public class ListingCasesService : IListingCasesService
         {
             return ApiResponse<object?>.Fail("Listing case cannot be null.", "400");
         }
+
+        using var transaction = await _generalRepository.BeginTransactionAsync();
         try
         {
+            ListingCase listingCase = _generalRepository.MapDto<ListingCaseDto, ListingCase>(listingCaseDto);
+            listingCase.UserId = currentUser.Id;
+            listingCase.User = currentUser;
+            await _repository.AddListingCaseAsync(listingCase);
+            currentUser.ListingCases.Add(listingCase);
+            await _generalRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
 
-            await _repository.CreateListingCaseAsync(listingCaseDto, currentUser);
             return ApiResponse<object?>.Success(listingCaseDto, "Listing case created successfully.");
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             return ApiResponse<object?>.Fail($"Error creating listing case: {ex.Message}", "500");
         }
     }
 
+// just basic update, no references update
     public async Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId)
     {
         try
         {
-            await _repository.UpdateListingCaseAsync(listingCaseDto, listingCaseId);
+            ListingCase existingListingCase = await _repository.GetListingCaseByIdAsync(listingCaseId);
+            UpdateListingCaseDto updatedDto = _generalRepository.MapDto<ListingCase, UpdateListingCaseDto>(existingListingCase);
+            await _generalRepository.SaveChangesAsync();
             return ApiResponse<UpdateListingCaseDto?>.Success(listingCaseDto, "Listing case updated successfully.");
+        }
+        catch (InvalidOperationException)
+        {
+            return ApiResponse<UpdateListingCaseDto?>.Fail($"Listing case with ID {listingCaseId} not found.", "404");
         }
         catch (Exception ex)
         {
@@ -72,9 +89,17 @@ public class ListingCasesService : IListingCasesService
                 return ApiResponse<ListingCaseStatusDto?>.Fail(listingCaseResponse.Message ?? "listing case Unknown error.", listingCaseResponse.ErrorCode);
 
             ListingCase listingCase = listingCaseResponse.Data!;
-            ApiResponse<ListingCaseStatusDto?> response = await _repository.ChangeListingCaseStatusAsync(newStatus, listingCase);
 
-            return ApiResponse<ListingCaseStatusDto?>.Success(response.Data, "Listing case status updated successfully.");
+            listingCase.ListcaseStatus = newStatus;
+
+            await _generalRepository.SaveChangesAsync();
+            ListingCaseStatusDto statusDto = new ListingCaseStatusDto
+            {
+                Id = listingCase.Id,
+                title = listingCase.Title,
+                Status = listingCase.ListcaseStatus
+            };
+            return ApiResponse<ListingCaseStatusDto?>.Success(statusDto, "Listing case status updated successfully.");
         }
         catch (Exception ex)
         {
@@ -85,7 +110,7 @@ public class ListingCasesService : IListingCasesService
     public async Task<ApiResponse<object?>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId)
     {
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _generalRepository.BeginTransactionAsync();
         try
         {
             ApiResponse<ListingCase?> listingCaseResponse = await _validator.ValidateListingCaseAsync(listingCaseId);
@@ -105,9 +130,21 @@ public class ListingCasesService : IListingCasesService
                     return ApiResponse<object?>.Fail(agentResult.Message ?? "listing case Unknown error.", agentResult.ErrorCode);
 
                 var agent = agentResult.Data!;
-                await _repository.CreateAgentListingCaseAsync(agent, listingCase);
-
+                AgentListingCase agentListingCase = new AgentListingCase
+                {
+                    AgentId = agent.Id,
+                    ListingCaseId = listingCase.Id,
+                    Agent = agent,
+                    ListingCase = listingCase
+                };
+                agent.AgentListingCases.Add(agentListingCase);
+                listingCase.AgentListingCases.Add(agentListingCase);
+                await _repository.AddAgentListingCaseAsync(agentListingCase);
+                await _generalRepository.SaveChangesAsync();
+                agentListingCases.Add(agentListingCase);
+                
             }
+            await transaction.CommitAsync();
             return ApiResponse<object?>.Success(null, "Agents added to listing case successfully.");
         }
         catch (Exception ex)
@@ -123,7 +160,8 @@ public class ListingCasesService : IListingCasesService
         if (!agentResult.Succeed)
             return ApiResponse<ICollection<ListingCase>>.Fail(agentResult.Message ?? "Agent validation failed.", agentResult.ErrorCode);
         Agent agent = agentResult.Data!;
-        return _repository.GetAllListingCasesByAgentAsync(agent);
+        ICollection<ListingCase> listingCases =  _repository.GetAllListingCasesByAgentAsync(agent);
+        return ApiResponse<ICollection<ListingCase>>.Success(listingCases, "Listing cases retrieved successfully.");
     }
 
     public async Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByCreatorAsync(string currentUserId)
@@ -137,7 +175,8 @@ public class ListingCasesService : IListingCasesService
         {
             return ApiResponse<ICollection<ListingCase>>.Fail("Current user is deleted.", "403");
         }
-        return await _repository.GetAllListingCasesByUserAsync(currentUser);
+        ICollection<ListingCase> listingCases = await _repository.GetAllListingCasesByUserAsync(currentUser);
+        return ApiResponse<ICollection<ListingCase>>.Success(listingCases, "Listing cases retrieved successfully.");
     }
 
     public async Task<ApiResponse<ListingCase>> DeleteListingCaseAsync(string listingCaseId)
@@ -149,7 +188,8 @@ public class ListingCasesService : IListingCasesService
                 return ApiResponse<ListingCase>.Fail(listingCaseResponse.Message ?? "listing case Unknown error.", listingCaseResponse.ErrorCode);
 
             ListingCase listingCase = listingCaseResponse.Data!;
-            await _repository.DeleteListingCaseAsync(listingCase);
+             _repository.DeleteListingCase(listingCase);
+            await _generalRepository.SaveChangesAsync();
             return ApiResponse<ListingCase>.Success(listingCase, "Listing case deleted successfully.");
         }
         catch (Exception ex)

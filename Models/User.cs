@@ -6,7 +6,7 @@ namespace RecamSystemApi.Models;
 
 public class User : IdentityUser
 {
-    public bool IsDeleted { get; set; }
+    public bool IsDeleted { get; set; } = false;
     public DateTime CreatedAt { get; set; }
 
     public Agent? Agent { get; set; }

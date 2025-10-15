@@ -85,12 +85,12 @@ public class AuthService : IAuthService
     {
         User? user = await _userManager.FindByEmailAsync(loginRequest.Email);
         if (user == null)
-            throw new System.Exception("Invalid email or password.");
+            throw new System.Exception("The user does not exist.");
         if (user.IsDeleted)
             throw new System.Exception("User account is deleted or inactive.");
         bool isPasswordValid = await _userManager.CheckPasswordAsync(user, loginRequest.Password);
         if (!isPasswordValid)
-            throw new System.Exception("Invalid email or password.");
+            throw new System.Exception("Invalid password.");
 
         return await _jwtTokenService.GenerateTokenAsync(user);
     }    

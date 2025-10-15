@@ -4,5 +4,5 @@ public interface IGeneralRepository
 {
     public Task<IDbContextTransaction> BeginTransactionAsync();
     public Task SaveChangesAsync();
-    public TEntity MapDto<TEntity, TDto>(TDto dto);
+    public TDestination MapDto<TSource, TDestination>(TSource source);
 }
