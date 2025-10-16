@@ -18,11 +18,18 @@ public class MediaAssetController : ControllerBase
     [Authorize(Roles = "Admin, Photographer")]
     [HttpPost("upload")]
     public async Task<IActionResult> UploadMediaAssetAsync
-    ([FromForm] ICollection<IFormFile> files, [FromQuery] string userId, [FromQuery] string listingCaseId, [FromQuery] MediaType mediaType)
+    ([FromForm] ICollection<IFormFile> files, [FromQuery] string listingCaseId, [FromQuery] MediaType mediaType)
     {
         if (files == null || files.Count == 0)
         {
             return BadRequest("File cannot be null or empty.");
+        }
+
+        string? userId = User.FindFirst("UserId")?.Value;
+        
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("User ID not found in token.");
         }
 
         var response = await _mediaAssetService.UploadMediaAssetsBulkAsync (files, userId, listingCaseId, mediaType);

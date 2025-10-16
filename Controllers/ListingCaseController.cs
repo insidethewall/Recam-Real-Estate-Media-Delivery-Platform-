@@ -91,9 +91,14 @@ public class ListingCaseController : ControllerBase
     }
 
     [Authorize(Roles = "Agent")]
-    [HttpGet("getListingCasesByAgent/{userId}")]
-    public async Task<IActionResult> GetAllListingCasesByAgentAsync([FromRoute] string userId)
+    [HttpGet("getListingCasesByAgent")]
+    public async Task<IActionResult> GetAllListingCasesByAgentAsync()
     {
+            string? userId = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User ID not found in token.");
+            }
             ApiResponse<ICollection<ListingCase>> response = await _service.GetAllListingCasesByAgentAsync(userId);
             return response.Succeed
             ? Ok(response.Data)
@@ -101,9 +106,14 @@ public class ListingCaseController : ControllerBase
     } 
 
     [Authorize(Roles = "Admin, Photographer")]
-    [HttpGet("getListingCasesByCreator/{userId}")]
-     public async Task<IActionResult> GetAllListingCasesByCreatorAsync([FromRoute] string userId)
+    [HttpGet("getListingCasesByCreator")]
+     public async Task<IActionResult> GetAllListingCasesByCreatorAsync()
     {
+            string? userId = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User ID not found in token.");
+            }
             ApiResponse<ICollection<ListingCase>> response = await _service.GetAllListingCasesByCreatorAsync(userId);
             return response.Succeed
             ? Ok(response.Data)
