@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -7,16 +9,17 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RecamSystemApi.Data;
 using RecamSystemApi.Exception;
+using RecamSystemApi.Helper;
 using RecamSystemApi.Models;
 using RecamSystemApi.Services;
 
 
 
-namespace RecammSystemApi;
+namespace RecamSystemApi;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -55,10 +58,37 @@ public class Program
                 };
             });
 
+        // solve circular reference problem
+        builder.Services.AddControllers().AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+        });
 
+        //repository
+        builder.Services.AddScoped<IListingCasesRepository, ListingCasesRepository>();
+        builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IMediaAssetRepository, MediaAssetRepository>();
+        builder.Services.AddScoped<IGeneralRepository, GeneralRepository>();
+        //service
+        builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
+        builder.Services.AddScoped<IAgentListingCaseValidator, AgentListingCaseValidator>();
         builder.Services.AddScoped<IAuthService, AuthService>();
+        builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+        builder.Services.AddScoped<IMediaAssetService, MediaAssetService>();
+        builder.Services.AddScoped<IAzureBlobStorageService, AzureBlobStorageService>();
+
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
+        builder.Services.AddSingleton(x =>
+        {
+            var config = x.GetRequiredService<IConfiguration>();
+            var connectionString = config["AzureBlobStorage:ConnectionString"];
+            return new BlobServiceClient(connectionString);
+        });
+
+        builder.Services.AddTransient<IEmailSender, EmailSender>();
 
         // Add services to the container.
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -67,17 +97,42 @@ public class Program
             options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Version = "v1",
+                    Title = "Reacm API",
+                    Description = "An ASP.NET Core Web API for Reacm System",
+                    Contact = new OpenApiContact
                     {
-                        Version = "v1",
-                        Title = "Reacm API",
-                        Description = "An ASP.NET Core Web API for Reacm System",
-                        Contact = new OpenApiContact
-                        {
-                            Name = "Toby Ren",
-                            Url = new Uri("mailto:rxy550569417@gmail.com")
-                        },
-                    }
+                        Name = "Toby Ren",
+                        Url = new Uri("mailto:rxy550569417@gmail.com")
+                    },
+                }
                 );
+
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter your JWT token below prefixed with **Bearer**. Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`"
+                });
+                
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
             }
         );
 
@@ -90,14 +145,31 @@ public class Program
                 }
             ));
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
+        using (var scope = app.Services.CreateScope())
+        { 
+            var services = scope.ServiceProvider;
+            try
+            {
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+                await RoleSeeder.SeedRolesAsync(services);
+            }
+            catch (System.Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "An error occurred while seeding the database.");
+            }
         }
-        app.UseAuthentication();
 
+        // Configure the HTTP request pipeline.
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+  
+
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
         app.Run();

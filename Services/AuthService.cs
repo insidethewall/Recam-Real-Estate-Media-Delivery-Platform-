@@ -1,48 +1,59 @@
-using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
+using RecamSystemApi.Data;
 using RecamSystemApi.DTOs;
+using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
+using IEmailSender = RecamSystemApi.Helper.IEmailSender;
 
 
 namespace RecamSystemApi.Services;
 
- public class AuthService : IAuthService
-    {
-        private readonly UserManager<User> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+public class AuthService : IAuthService
+{
+    private readonly ReacmDbContext _context;
+    private readonly UserManager<User> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly IAuthRepository _authRepository;
+    private readonly IMapper _mapper;
 
-        private readonly IMapper _mapper;
-        private readonly IConfiguration _configuration;
-        
 
-        /// <summary>
+    /// <summary>
     /// CTOR
     /// </summary>
     /// <param name="userManager"></param>
-    public AuthService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager,IMapper mapper, IConfiguration configuration)
+    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository,  IMapper mapper)
     {
+        _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
+        _jwtTokenService = jwtTokenService;
+        _authRepository = authRepository;
         _mapper = mapper;
-        _configuration = configuration;
+
     }
 
-        public async Task<string>  Register(RegisterRequestDto registerRequest)
+    // only for Admin and Photographer roles
+    public async Task<string> Register(RegisterRequestDto registerRequest)
+    {
+        if (registerRequest.Role == Role.Agent)
+            throw new System.Exception("Agent accounts must be created by an Admin or Photographer.");
+        User user = new User
         {
-            User user = new User
-            {
-                Email = registerRequest.Email,
-                UserName = registerRequest.UserName,
-                CreatedAt = DateTime.UtcNow
-            };
+            Email = registerRequest.Email,
+            UserName = registerRequest.Email,
+            CreatedAt = DateTime.UtcNow,
+        };
+        Console.WriteLine($"UserName: {user.UserName}");
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var roleName = registerRequest.Role.ToString();
 
-            Console.WriteLine($"UserName: {user.UserName}");
-           
+            if (!await _roleManager.RoleExistsAsync(roleName))
+                throw new System.Exception("Role does not exist.");
+
             IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
 
             if (!result.Succeeded)
@@ -51,35 +62,37 @@ namespace RecamSystemApi.Services;
                 throw new System.Exception($"User creation failed: {errors}");
             }
 
-            var roleName = registerRequest.Role.ToString();
-
-            if (!await _roleManager.RoleExistsAsync(roleName))
-                throw new System.Exception("Role does not exist.");
-
             await _userManager.AddToRoleAsync(user, roleName);
-
-            string token = GenerateJwtToken(user, roleName);
+            if (registerRequest.Role == Role.Photographer)
+            {
+                await _authRepository.CreatePhotographerAsync(registerRequest, user);
+            }
+            await transaction.CommitAsync();
+            string token = await _jwtTokenService.GenerateTokenAsync(user);
             return token;
         }
-
-        private string GenerateJwtToken(User user, string roleName)
+        catch (System.Exception ex)
         {
-            var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? string.Empty, roleName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-            };
-
-            var jwtKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured.");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var token = new JwtSecurityToken(
-                        issuer: _configuration["Jwt:Issuer"],
-                        audience: _configuration["Jwt:Audience"],
-                        claims: claims,
-                        expires: DateTime.Now.AddMinutes(30),
-                        signingCredentials: creds);
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            await transaction.RollbackAsync();
+            await _userManager.DeleteAsync(user); // Clean up in case of error
+            throw new System.Exception($"Internal server error: {ex.Message}");
         }
+
     }
+
+    // login for all roles
+    public async Task<string> Login(LoginRequestDto loginRequest)
+    {
+        User? user = await _userManager.FindByEmailAsync(loginRequest.Email);
+        if (user == null)
+            throw new System.Exception("The user does not exist.");
+        if (user.IsDeleted)
+            throw new System.Exception("User account is deleted or inactive.");
+        bool isPasswordValid = await _userManager.CheckPasswordAsync(user, loginRequest.Password);
+        if (!isPasswordValid)
+            throw new System.Exception("Invalid password.");
+
+        return await _jwtTokenService.GenerateTokenAsync(user);
+    }    
+ 
+}

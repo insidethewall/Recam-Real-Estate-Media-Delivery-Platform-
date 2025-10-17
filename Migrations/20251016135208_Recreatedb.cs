@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialTables : Migration
+    public partial class Recreatedb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -197,11 +197,11 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     Bathrooms = table.Column<int>(type: "int", nullable: false),
                     Garages = table.Column<int>(type: "int", nullable: false),
                     FloorArea = table.Column<double>(type: "float", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     PropertyType = table.Column<int>(type: "int", nullable: false),
                     SaleCategory = table.Column<int>(type: "int", nullable: false),
-                    ListcaseStatus = table.Column<int>(type: "int", nullable: false),
+                    ListcaseStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
@@ -288,13 +288,13 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                 name: "MediaAssets",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     FilePath = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
                     MediaType = table.Column<int>(type: "int", nullable: false),
                     IsHeroMedia = table.Column<bool>(type: "bit", nullable: false),
                     IsDisplaySelected = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     UploadedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ListingCaseId = table.Column<string>(type: "nvarchar(450)", nullable: false)

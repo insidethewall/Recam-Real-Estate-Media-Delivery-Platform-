@@ -85,10 +85,81 @@ public class ReacmDbContext : IdentityDbContext<User>
             .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<ListingCase>((entity) =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(e => e.Street)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.City)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.State)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Postcode)
+                .IsRequired();
+
+            entity.Property(e => e.Longitude)
+                .HasColumnType("decimal(9,6)");
+
+            entity.Property(e => e.Latitude)
+                .HasColumnType("decimal(9,6)");
+
+            entity.Property(e => e.Price)
+                .IsRequired();
+
+            entity.Property(e => e.Bedrooms)
+                .IsRequired();
+
+            entity.Property(e => e.Bathrooms)
+                .IsRequired();
+
+            entity.Property(e => e.Garages)
+                .IsRequired();
+
+            entity.Property(e => e.FloorArea)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.PropertyType)
+                .IsRequired();
+
+            entity.Property(e => e.SaleCategory)
+                .IsRequired();
+
+            entity.Property(e => e.ListcaseStatus)
+                .HasDefaultValue(ListcaseStatus.Created);
+
+            entity.Property(e => e.UserId)
+                .IsRequired();
+
+            entity.HasOne(e => e.User)
+                .WithMany(u=>u.ListingCases)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // When User is deleted, ListingCases are deleted
+        });
+
         // restrict to directly delete the listing case with referenced media assets
         modelBuilder.Entity<MediaAsset>(entity =>
         {
-            entity.HasKey(e => e.Id);
+            entity.HasKey(e => e.Id);;
 
             entity.Property(e => e.FileName).IsRequired()
                 .HasMaxLength(255); 
@@ -106,7 +177,7 @@ public class ReacmDbContext : IdentityDbContext<User>
                 .HasDefaultValueSql("GETUTCDATE()");
 
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u=>u.MediaAssets)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 

@@ -1,8 +1,11 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecamSystemApi.DTOs;
+using RecamSystemApi.Enums;
 using RecamSystemApi.Services;
 
-namespace RecamSystemAPI.Controllers
+namespace RecamSystemApi.Controllers
 {
     /// <summary>
     /// AUTH API
@@ -18,10 +21,27 @@ namespace RecamSystemAPI.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult>  Register([FromBody] RegisterRequestDto registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
         {
-            string token = await _authService.Register(registerRequest);
-            return StatusCode(201, token);
+            if (registerRequest.Role == Enums.Role.Admin || registerRequest.Role == Role.Photographer)
+            {
+                string token = await _authService.Register(registerRequest);
+                return StatusCode(201, token);
+            }
+            else
+            {
+                return BadRequest("Role must be Admin, Photographer or Agent. Agents can only be created by Admin or Photographer.");
+            }
+
         }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
+        {
+            string token = await _authService.Login(loginRequest);
+            return Ok(token);
+        }
+
+
     }
 }
