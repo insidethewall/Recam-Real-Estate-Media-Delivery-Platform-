@@ -359,11 +359,8 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 
             modelBuilder.Entity("RecamSystemApi.Models.MediaAsset", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("FileName")
                         .IsRequired()

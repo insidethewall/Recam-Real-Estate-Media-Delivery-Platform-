@@ -12,8 +12,8 @@ using RecamSystemApi.Data;
 namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 {
     [DbContext(typeof(ReacmDbContext))]
-    [Migration("20250622004135_updateUserTable")]
-    partial class updateUserTable
+    [Migration("20251016135208_Recreatedb")]
+    partial class Recreatedb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -292,7 +292,9 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -305,13 +307,17 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<decimal>("Latitude")
                         .HasColumnType("decimal(9,6)");
 
                     b.Property<int>("ListcaseStatus")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<decimal>("Longitude")
                         .HasColumnType("decimal(9,6)");
@@ -356,11 +362,8 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 
             modelBuilder.Entity("RecamSystemApi.Models.MediaAsset", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -371,6 +374,9 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDisplaySelected")
                         .HasColumnType("bit");
@@ -394,16 +400,11 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("UserId1")
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ListingCaseId");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
 
                     b.ToTable("MediaAssets");
                 });
@@ -621,14 +622,10 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .IsRequired();
 
                     b.HasOne("RecamSystemApi.Models.User", "User")
-                        .WithMany()
+                        .WithMany("MediaAssets")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("RecamSystemApi.Models.User", null)
-                        .WithMany("MediaAssets")
-                        .HasForeignKey("UserId1");
 
                     b.Navigation("ListingCase");
 

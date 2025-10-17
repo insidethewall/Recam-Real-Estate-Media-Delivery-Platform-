@@ -159,7 +159,7 @@ public class ReacmDbContext : IdentityDbContext<User>
         // restrict to directly delete the listing case with referenced media assets
         modelBuilder.Entity<MediaAsset>(entity =>
         {
-            entity.HasKey(e => e.Id);
+            entity.HasKey(e => e.Id);;
 
             entity.Property(e => e.FileName).IsRequired()
                 .HasMaxLength(255); 

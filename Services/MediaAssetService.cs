@@ -35,7 +35,7 @@ public class MediaAssetService : IMediaAssetService
             if (files == null || files.Count == 0)
                 return ApiResponse<ICollection<MediaAssetDto?>>.Fail("File cannot be null or empty.", "400");
 
-            ApiResponse<ListingCase?> listingCaseResponse = await _agentListingCaseValidator.ValidateListingCaseAsync(userId);
+            ApiResponse<ListingCase?> listingCaseResponse = await _agentListingCaseValidator.ValidateListingCaseAsync(listingCaseId);
             if (!listingCaseResponse.Succeed || listingCaseResponse.Data == null)
                 return ApiResponse<ICollection<MediaAssetDto?>>.Fail(listingCaseResponse.ErrorMessage ?? "Unknown error occurred.", listingCaseResponse.ErrorCode);
             ListingCase listingCase = listingCaseResponse.Data;

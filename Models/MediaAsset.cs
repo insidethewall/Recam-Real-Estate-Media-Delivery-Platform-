@@ -2,7 +2,7 @@ namespace RecamSystemApi.Models
 {
     public class MediaAsset
     {
-        public int Id { get; set; }
+        public required string Id { get; set; }
 
         public required string FileName { get; set; }
 
