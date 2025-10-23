@@ -12,8 +12,8 @@ using RecamSystemApi.Data;
 namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 {
     [DbContext(typeof(ReacmDbContext))]
-    [Migration("20251016135208_Recreatedb")]
-    partial class Recreatedb
+    [Migration("20251023004520_moldalBuiding2")]
+    partial class moldalBuiding2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -496,13 +496,13 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("Agent", "Agent")
                         .WithMany("AgentListingCases")
                         .HasForeignKey("AgentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("RecamSystemApi.Models.ListingCase", "ListingCase")
                         .WithMany("AgentListingCases")
                         .HasForeignKey("ListingCaseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Agent");
@@ -515,13 +515,13 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("Agent", "Agent")
                         .WithMany("AgentPhotographer")
                         .HasForeignKey("AgentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Photographer", "Photographer")
                         .WithMany("AgentPhotographer")
                         .HasForeignKey("PhotographerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Agent");
@@ -607,7 +607,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("RecamSystemApi.Models.User", "User")
                         .WithMany("ListingCases")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -618,7 +618,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("RecamSystemApi.Models.ListingCase", "ListingCase")
                         .WithMany("MediaAssets")
                         .HasForeignKey("ListingCaseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("RecamSystemApi.Models.User", "User")

@@ -10,6 +10,6 @@ public class RegisterRequestDto : IUserProfileDto
     public required string FirstName { get; set; } 
     public required string LastName { get; set; } 
     public string? AvatarUrl { get; set; }
-    public required Role Role { get; set; }
+
 }
 

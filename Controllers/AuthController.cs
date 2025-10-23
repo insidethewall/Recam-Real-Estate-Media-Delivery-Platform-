@@ -1,9 +1,7 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecamSystemApi.DTOs;
-using RecamSystemApi.Enums;
 using RecamSystemApi.Services;
+using RecamSystemApi.Utility;
 
 namespace RecamSystemApi.Controllers
 {
@@ -15,31 +13,39 @@ namespace RecamSystemApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        public AuthController(IAuthService authService)
+        private readonly ILogger<AuthController> _logger;
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
         {
-            if (registerRequest.Role == Enums.Role.Admin || registerRequest.Role == Role.Photographer)
-            {
+            try
+            { 
                 string token = await _authService.Register(registerRequest);
-                return StatusCode(201, token);
-            }
-            else
+                return StatusCode(201, ApiResponse<string>.Success(token, "User registered successfully."));
+                
+            } catch (UserRegistrationException ex)
             {
-                return BadRequest("Role must be Admin, Photographer or Agent. Agents can only be created by Admin or Photographer.");
+                _logger.LogError(ex, "User registration failed.");
+                return BadRequest(ApiResponse<string>.Fail(ex.Message, "400"));
             }
-
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred during user registration.");
+                return StatusCode(500, ApiResponse<string>.Fail(ex.Message, "500"));
+            }
+          
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             string token = await _authService.Login(loginRequest);
-            return Ok(token);
+            return Ok(ApiResponse<string>.Success(token, "User logged in successfully."));
         }
 
 

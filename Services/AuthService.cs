@@ -1,10 +1,8 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using RecamSystemApi.Data;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
-using IEmailSender = RecamSystemApi.Helper.IEmailSender;
 
 
 namespace RecamSystemApi.Services;
@@ -16,57 +14,46 @@ public class AuthService : IAuthService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IAuthRepository _authRepository;
-    private readonly IMapper _mapper;
+
 
 
     /// <summary>
     /// CTOR
     /// </summary>
     /// <param name="userManager"></param>
-    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository,  IMapper mapper)
+    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _jwtTokenService = jwtTokenService;
         _authRepository = authRepository;
-        _mapper = mapper;
-
     }
 
-    // only for Admin and Photographer roles
+    // only for Photographer roles
     public async Task<string> Register(RegisterRequestDto registerRequest)
     {
-        if (registerRequest.Role == Role.Agent)
-            throw new System.Exception("Agent accounts must be created by an Admin or Photographer.");
         User user = new User
         {
             Email = registerRequest.Email,
             UserName = registerRequest.Email,
             CreatedAt = DateTime.UtcNow,
         };
-        Console.WriteLine($"UserName: {user.UserName}");
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            var roleName = registerRequest.Role.ToString();
-
-            if (!await _roleManager.RoleExistsAsync(roleName))
-                throw new System.Exception("Role does not exist.");
+            var roleName = Role.Photographer.ToString();
 
             IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
 
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                throw new System.Exception($"User creation failed: {errors}");
+                throw new UserRegistrationException($"User creation failed: {errors}");
             }
 
             await _userManager.AddToRoleAsync(user, roleName);
-            if (registerRequest.Role == Role.Photographer)
-            {
-                await _authRepository.CreatePhotographerAsync(registerRequest, user);
-            }
+            await _authRepository.CreatePhotographerAsync(registerRequest, user);
             await transaction.CommitAsync();
             string token = await _jwtTokenService.GenerateTokenAsync(user);
             return token;

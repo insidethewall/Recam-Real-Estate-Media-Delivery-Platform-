@@ -15,7 +15,7 @@ public class GeneralRepository : IGeneralRepository
         _mapper = mapper;
     }
 
- 
+
 
     public async Task<IDbContextTransaction> BeginTransactionAsync()
     {
@@ -26,10 +26,15 @@ public class GeneralRepository : IGeneralRepository
     {
         await _context.SaveChangesAsync();
     }
-    
+
     public TDestination MapDto<TSource, TDestination>(TSource source)
     {
         return _mapper.Map<TDestination>(source);
+    }
+    
+    public TDestination MapDtoUpdate<TSource, TDestination>(TSource source, TDestination destination)
+    {
+        return _mapper.Map(source, destination);
     }
 
 

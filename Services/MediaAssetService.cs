@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using RecamSystemApi.Data;
 using RecamSystemApi.Models;
-using RecamSystemApi.Utility;
 
 public class MediaAssetService : IMediaAssetService
 {
@@ -21,24 +19,21 @@ public class MediaAssetService : IMediaAssetService
         _userManager = userManager;
     }
 
-    public async Task<ApiResponse<ICollection<MediaAssetDto?>>> UploadMediaAssetsBulkAsync(ICollection<IFormFile> files, string userId, string listingCaseId, MediaType mediaType)
+    public async Task<ICollection<MediaAssetDto>> UploadMediaAssetsBulkAsync(ICollection<IFormFile> files, string userId, string listingCaseId, MediaType mediaType)
     {
         using var transaction = await _generalRepository.BeginTransactionAsync();
         try
         {
-            ICollection<MediaAssetDto?> uploadedMediaAssets = new List<MediaAssetDto?>();
+            ICollection<MediaAssetDto> uploadedMediaAssets = new List<MediaAssetDto>();
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-                return ApiResponse<ICollection<MediaAssetDto?>>.Fail($"User with ID {userId} not found.", "404");
+                throw new UserNotFoundException($"User with ID {userId} not found.");
             if (user.IsDeleted)
-                return ApiResponse<ICollection<MediaAssetDto?>>.Fail($"User with ID {userId} is deleted.", "403");
+                throw new UserNotFoundException($"User account with ID {userId} is deleted.");
             if (files == null || files.Count == 0)
-                return ApiResponse<ICollection<MediaAssetDto?>>.Fail("File cannot be null or empty.", "400");
+                throw new ArgumentException("No files provided for upload.");
 
-            ApiResponse<ListingCase?> listingCaseResponse = await _agentListingCaseValidator.ValidateListingCaseAsync(listingCaseId);
-            if (!listingCaseResponse.Succeed || listingCaseResponse.Data == null)
-                return ApiResponse<ICollection<MediaAssetDto?>>.Fail(listingCaseResponse.ErrorMessage ?? "Unknown error occurred.", listingCaseResponse.ErrorCode);
-            ListingCase listingCase = listingCaseResponse.Data;
+            ListingCase listingCase = await _agentListingCaseValidator.ValidateListingCaseAsync(listingCaseId);
             IEnumerable<(IFormFile file, string mediaType)> fileList = files.Select(f => (f, mediaType.ToString()));
 
             IDictionary<string, string> blobUrls = await _azureBlobStorageService.UploadFileBulkAsync(fileList);
@@ -48,7 +43,7 @@ public class MediaAssetService : IMediaAssetService
                 var segments = file.Split('_');
                 if (segments.Length < 3)
                 {
-                    return ApiResponse<ICollection<MediaAssetDto?>>.Fail("Invalid file name format.", "400");
+                    throw new FormatException($"Uploaded file name '{file}' is not in the expected format.");
                 }
 
                 string fileName = segments[1];
@@ -64,22 +59,18 @@ public class MediaAssetService : IMediaAssetService
                 };
 
                 MediaAsset mediaAsset = _generalRepository.MapDto<MediaAssetDto, MediaAsset>(mediaAssetDto);
-                mediaAsset.ListingCase = listingCase;
-                mediaAsset.User = user;
-                user.MediaAssets.Add(mediaAsset);
-                listingCase.MediaAssets.Add(mediaAsset);
                 await _mediaAssetRepository.AddMediaAssetAsync(mediaAsset);
                 await _generalRepository.SaveChangesAsync();
                 await transaction.CommitAsync();
                 uploadedMediaAssets.Add(mediaAssetDto);
             }
-            return ApiResponse<ICollection<MediaAssetDto?>>.Success(uploadedMediaAssets, "Uploaded");
+            return uploadedMediaAssets;
 
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return ApiResponse<ICollection<MediaAssetDto?>>.Fail($"Error uploading media assets: {ex.Message}", "500");
+           throw new Exception($"Error uploading media assets: {ex.Message}");
         }
  
 
