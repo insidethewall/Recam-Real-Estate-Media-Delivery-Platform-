@@ -27,16 +27,23 @@ public class MediaAssetController : ControllerBase
         }
 
         string? userId = User.FindFirst("UserId")?.Value;
-        
+
         if (string.IsNullOrEmpty(userId))
         {
             return Unauthorized(ApiResponse<string>.Fail("User ID not found in token.", "401"));
         }
 
-        ICollection<MediaAssetDto> response = await _mediaAssetService.UploadMediaAssetsBulkAsync (files, userId, listingCaseId, mediaType);
-        return Ok(ApiResponse<ICollection<MediaAssetDto>>.Success(response, "Files uploaded successfully."))
-            ;
+        ICollection<MediaAssetDto> response = await _mediaAssetService.UploadMediaAssetsBulkAsync(files, userId, listingCaseId, mediaType);
+        return Ok(ApiResponse<ICollection<MediaAssetDto>>.Success(response, "Files uploaded successfully."));
     }
+    [HttpGet("listings/{id}/media")]
+    public async Task<IActionResult> GetMediaAssetsByListingCaseAsync([FromRoute] string id)
+    { 
+        ICollection<MediaAssetDto> response = await _mediaAssetService.GetMediaAssetsByListingCaseAsync(id);
+        return Ok(ApiResponse<ICollection<MediaAssetDto>>.Success(response, "Media assets retrieved successfully."));
+        
+    }
+
 
     // Other methods for bulk upload, retrieval, and deletion can be added here...
 

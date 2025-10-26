@@ -84,24 +84,24 @@ public class UserService : IUserService
 
 
     // only Admin can delete users
-    public async Task<ApiResponse<object?>> DeleteUserAsync(string currentUserId, string targetUserId)
+    public async Task<UserDeletionDto> DeleteUserAsync(string currentUserId, string targetUserId)
     {
         User? currentUser = await _userManager.FindByIdAsync(currentUserId);
         User? targetUser = await _userManager.FindByIdAsync(targetUserId);
         if (currentUser == null)
-            return ApiResponse<object?>.Fail("Current user Unauthorize.", "401");
+            throw new System.Exception("Current user not found.");
         if (targetUser == null)
-            return ApiResponse<object?>.Fail("User not found.", "404");
+           throw new System.Exception("Target user not found.");
 
         var targetRoles = await _userManager.GetRolesAsync(targetUser);
         var currentRoles = await _userManager.GetRolesAsync(currentUser);
         var targetRole = targetRoles.FirstOrDefault();
         var currentRole = currentRoles.FirstOrDefault();
         if (currentRole == null || targetRole == null)
-            return ApiResponse<object?>.Fail("User roles not found.", "404");
+            throw new System.Exception("User roles not found.");
         // Check permissions
         if (currentRole == Role.Agent.ToString() || currentRole == Role.Photographer.ToString())
-            return ApiResponse<object?>.Fail($"{currentRole} are not allowed to delete any users.", "403");
+            throw new System.Exception("You do not have permission to delete users.");
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
@@ -110,20 +110,29 @@ public class UserService : IUserService
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                return ApiResponse<object?>.Fail($"User deletion failed: {errors}", "500");
+                throw new System.Exception($"Failed to delete user: {errors}");
             }
-            ICollection<AgentPhotographer> deletedAgentPhotographers = await _userRepository.DeleteAgentPhotographerCompany(targetUser);
+            // Already cascade delete related data in the database
+            // ICollection<AgentPhotographer> deletedAgentPhotographers = await _userRepository.DeleteAgentPhotographerCompany(targetUser);
+            UserDeletionDto userDeletionDto = new UserDeletionDto
+            {
+                user = targetUser,
+            };
 
-// Delete Photographer, MediaAssets
+            // Delete Photographer, MediaAssets
             if (targetRole == Role.Photographer.ToString())
             {
+                Photographer photographer = _userRepository.DeletePhotographer(targetUser);
+                userDeletionDto.photographer = photographer;
             }
             else if (targetRole == Role.Agent.ToString())
             {
-                //ToDo: Delete AgentListing cases
+                Agent agent = _userRepository.DeleteAgent(targetUser);
+                userDeletionDto.agent = agent;
             }
+
             await transaction.CommitAsync();
-            return ApiResponse<object?>.Success(targetUser, "User deleted successfully.");
+            return userDeletionDto;
 
         }
         catch (System.Exception ex)
@@ -131,7 +140,8 @@ public class UserService : IUserService
             await transaction.RollbackAsync();
             targetUser.IsDeleted = false;
             IdentityResult result = await _userManager.UpdateAsync(targetUser);
-            return ApiResponse<object?>.Fail($"Internal server error: {ex.Message}", "500");
+            throw new System.Exception($"Error deleting user: {ex.Message}");
+            
         }
     }
 

@@ -6,7 +6,7 @@ namespace RecamSystemApi.Services;
 
 public interface IListingCasesService
 {
-    Task<ICollection<ListingCase>> GetAllListingCasesAsync();
+    Task<ICollection<ListingCaseWithNavDto>> GetAllListingCasesAsync();
     Task<ListingCaseDto> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User currentUser);
      Task<UpdateListingCaseDto> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId);
     Task<ListingCaseStatusDto> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId);

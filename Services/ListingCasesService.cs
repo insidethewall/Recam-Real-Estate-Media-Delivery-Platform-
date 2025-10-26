@@ -3,7 +3,6 @@ using RecamSystemApi.DTOs;
 using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
 using RecamSystemApi.Services;
-using RecamSystemApi.Utility;
 
 public class ListingCasesService : IListingCasesService
 {
@@ -19,7 +18,7 @@ public class ListingCasesService : IListingCasesService
         _validator = validator;
     }
 
-    public async Task<ICollection<ListingCase>> GetAllListingCasesAsync()
+    public async Task<ICollection<ListingCaseWithNavDto>> GetAllListingCasesAsync()
     {
         return await _repository.GetAllListingCasesAsync();
     }
@@ -113,10 +112,23 @@ public class ListingCasesService : IListingCasesService
 
     public async Task<ListingCase> DeleteListingCaseAsync(string listingCaseId)
     {
-        ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
-        _repository.DeleteListingCase(listingCase);
-        await _generalRepository.SaveChangesAsync();
-        return listingCase;
+        await using var transaction = await _generalRepository.BeginTransactionAsync();
+        try
+        {
+            ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
+            _repository.DeleteListingCase(listingCase);
+            _repository.DeleteAgentListingCase(listingCase);
+            _repository.RemoveListingCaseFromUser(listingCase);
+            await _generalRepository.SaveChangesAsync();
+            return listingCase;
+
+        }
+           catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            throw new Exception($"Error deleting listingCases: {ex.Message}");
+        }
+
     }
      
 

@@ -212,10 +212,10 @@ public class ListingCaseController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ICollection<ListingCase>>> GetAllListingCasesAsync()
+    public async Task<ActionResult<ICollection<ListingCaseWithNavDto>>> GetAllListingCasesAsync()
     {
-        ICollection<ListingCase> listingCases = await _service.GetAllListingCasesAsync();
-        return Ok(ApiResponse<ICollection<ListingCase>>.Success(listingCases, "Listing cases retrieved successfully."));
+        ICollection<ListingCaseWithNavDto> listingCases = await _service.GetAllListingCasesAsync();
+        return Ok(ApiResponse<ICollection<ListingCaseWithNavDto>>.Success(listingCases, "Listing cases retrieved successfully."));
         
     } 
 

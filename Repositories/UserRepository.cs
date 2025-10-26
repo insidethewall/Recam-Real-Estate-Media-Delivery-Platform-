@@ -46,7 +46,7 @@ public class UserRepository : IUserRepository
         await _context.AgentPhotographers.AddAsync(agentPhotographer);
         await _context.SaveChangesAsync();
         return agentPhotographer;
-        
+
     }
 
     public async Task<ICollection<AgentPhotographer>> DeleteAgentPhotographerCompany(User user)
@@ -57,9 +57,9 @@ public class UserRepository : IUserRepository
         _context.AgentPhotographers.RemoveRange(agentPhotographers);
         await _context.SaveChangesAsync();
         return agentPhotographers;
-        
+
     }
-    
+
     public async Task<Photographer> DeletePhotographerAsync(string userId)
     {
         try
@@ -95,14 +95,14 @@ public class UserRepository : IUserRepository
 
     public async Task<ICollection<UserInfoDto>> GetAllPhotographersAsync()
     {
-        return await _context.PhotographyCompanies.Where(p=>p.User.IsDeleted == false).Select(p => new UserInfoDto
-        { 
-                Id = p.Id,
-                Email = p.User.Email ?? string.Empty,
-                CompanyName = p.CompanyName,
-                FirstName = p.PhotographerFirstName,
-                LastName = p.PhotographerLastName,
-                AvatarUrl = p.AvatarUrl
+        return await _context.PhotographyCompanies.Where(p => p.User.IsDeleted == false).Select(p => new UserInfoDto
+        {
+            Id = p.Id,
+            Email = p.User.Email ?? string.Empty,
+            CompanyName = p.CompanyName,
+            FirstName = p.PhotographerFirstName,
+            LastName = p.PhotographerLastName,
+            AvatarUrl = p.AvatarUrl
         }).ToListAsync();
     }
 
@@ -112,7 +112,7 @@ public class UserRepository : IUserRepository
             throw new ArgumentException("Photographer ID cannot be null or empty.", nameof(photographerId));
         return await _context.AgentPhotographers
             .Where(ap => ap.PhotographerId == photographerId && ap.Agent.User.IsDeleted == false)
-            .Select(ap=> new UserInfoDto
+            .Select(ap => new UserInfoDto
             {
                 Id = ap.Agent.Id,
                 Email = ap.Agent.User.Email ?? string.Empty,
@@ -120,8 +120,34 @@ public class UserRepository : IUserRepository
                 FirstName = ap.Agent.AgentFirstName,
                 LastName = ap.Agent.AgentLastName,
                 AvatarUrl = ap.Agent.AvatarUrl
-             }).ToListAsync();
+            }).ToListAsync();
     }
+
+    public Photographer DeletePhotographer(User user)
+    {
+        Photographer? photographer = _context.PhotographyCompanies.Include(p=>p.AgentPhotographer)
+            .FirstOrDefault(p => p.Id == user.Id);
+
+        if (photographer == null)
+        {
+            throw new ArgumentException("Photographer not found.");
+        }
+        _context.PhotographyCompanies.Remove(photographer);
+        return photographer;
+    }
+
+    public Agent DeleteAgent(User user)
+    {
+        Agent? agent = _context.Agents.Include(a=>a.AgentPhotographer).Include(a=>a.AgentListingCases)
+            .FirstOrDefault(a => a.Id == user.Id);
+
+        if (agent == null)
+        {
+            throw new ArgumentException("Agent not found.");
+        }
+        _context.Agents.Remove(agent);
+        return agent;
+    }   
     
 
 }

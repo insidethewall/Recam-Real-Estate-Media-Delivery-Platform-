@@ -153,8 +153,9 @@ public class ReacmDbContext : IdentityDbContext<User>
                 .IsRequired();
 
             entity.HasOne(e => e.User)
-                .WithMany(u=>u.ListingCases)
+                .WithMany(u => u.ListingCases)
                 .HasForeignKey(e => e.UserId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict); // Prevent deletion of User if ListingCases exist
         });
 

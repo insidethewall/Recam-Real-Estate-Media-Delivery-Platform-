@@ -37,13 +37,13 @@ public class ListingCasesRepository : IListingCasesRepository
     public async Task AddAgentListingCaseAsync(AgentListingCase agentListingCase)
     {
         await _dbContext.AgentListingCases.AddAsync(agentListingCase);
- 
+
     }
 
     public async Task AddListingCaseAsync(ListingCase listingCase)
     {
         await _dbContext.ListingCases.AddAsync(listingCase);
-   
+
     }
 
     public async Task<ICollection<ListingCase>> GetAllListingCasesByUserAsync(User currentUser)
@@ -72,17 +72,47 @@ public class ListingCasesRepository : IListingCasesRepository
         return listingCases;
     }
 
-    public async Task<ICollection<ListingCase>> GetAllListingCasesAsync()
+    public async Task<ICollection<ListingCaseWithNavDto>> GetAllListingCasesAsync()
     {
-        return await _dbContext.ListingCases.Include(lc=>lc.User).ToListAsync();
+        var listings = await _dbContext.ListingCases
+            .Include(lc => lc.User)
+            .Include(lc => lc.MediaAssets)
+            .Include(lc => lc.AgentListingCases)
+            .Include(lc => lc.CaseContacts)
+            .ToListAsync();
+
+        var dtoList = _mapper.Map<List<ListingCaseWithNavDto>>(listings);
+        return dtoList;
     }
-    
+
     public void DeleteListingCase(ListingCase listingCase)
     {
-      
+
         listingCase.IsDeleted = true;
         _dbContext.ListingCases.Update(listingCase);
-  
+
+    }
+
+    public void DeleteAgentListingCase(ListingCase listingCase)
+    {
+        var agentListingCases = _dbContext.AgentListingCases.Where(alc => alc.ListingCaseId == listingCase.Id);
+        _dbContext.AgentListingCases.RemoveRange(agentListingCases);
+
+    }
+
+    public void RemoveListingCaseFromUser(ListingCase listingCase)
+    {
+        User? user = _dbContext.Users
+         .Include(u => u.ListingCases)
+         .FirstOrDefault(u => u.Id == listingCase.UserId);
+
+        if (user != null)
+        {
+            user.ListingCases.Remove(listingCase); // Removes from navigation property
+        }
+        listingCase.UserId = null; // Clears the foreign key
+        listingCase.User = null;   // Clears the navigation property
+
     }
     
 }

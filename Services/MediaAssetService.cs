@@ -9,14 +9,16 @@ public class MediaAssetService : IMediaAssetService
     private readonly IGeneralRepository _generalRepository;
     private readonly IAgentListingCaseValidator _agentListingCaseValidator;
     private readonly UserManager<User> _userManager;
+    private readonly ILogger<MediaAssetService> _logger;
 
-    public MediaAssetService(IGeneralRepository generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager)
+    public MediaAssetService(IGeneralRepository generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager, ILogger<MediaAssetService> logger)
     {
         _generalRepository = generalRepository;
         _azureBlobStorageService = azureBlobStorageService;
-        _mediaAssetRepository= mediaAssetRepository;
+        _mediaAssetRepository = mediaAssetRepository;
         _agentListingCaseValidator = agentListingCaseValidator;
         _userManager = userManager;
+        _logger = logger;
     }
 
     public async Task<ICollection<MediaAssetDto>> UploadMediaAssetsBulkAsync(ICollection<IFormFile> files, string userId, string listingCaseId, MediaType mediaType)
@@ -60,20 +62,28 @@ public class MediaAssetService : IMediaAssetService
 
                 MediaAsset mediaAsset = _generalRepository.MapDto<MediaAssetDto, MediaAsset>(mediaAssetDto);
                 await _mediaAssetRepository.AddMediaAssetAsync(mediaAsset);
-                await _generalRepository.SaveChangesAsync();
-                await transaction.CommitAsync();
+
                 uploadedMediaAssets.Add(mediaAssetDto);
             }
+            await _generalRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
             return uploadedMediaAssets;
 
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-           throw new Exception($"Error uploading media assets: {ex.Message}");
+            throw new Exception($"Error uploading media assets: {ex.Message}");
         }
- 
 
+
+    }
+    public async Task<ICollection<MediaAssetDto>> GetMediaAssetsByListingCaseAsync(string listingCaseId)
+    {
+        ListingCase listingCase = await _agentListingCaseValidator.ValidateListingCaseAsync(listingCaseId);
+        ICollection<MediaAsset> mediaAssets = await  _mediaAssetRepository.GetMediaAssetsByListingCaseAsync(listingCase.Id);
+        _logger.LogInformation($"Retrieved {mediaAssets.Count} media assets for ListingCase ID {listingCaseId}.");
+        return mediaAssets.Select(m => _generalRepository.MapDto<MediaAsset, MediaAssetDto>(m)).ToList();
     }
 
     // Other methods omitted for brevity...
