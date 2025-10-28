@@ -12,8 +12,8 @@ using RecamSystemApi.Data;
 namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 {
     [DbContext(typeof(ReacmDbContext))]
-    [Migration("20251016135208_Recreatedb")]
-    partial class Recreatedb
+    [Migration("20251027013018_makeUserIdNullable")]
+    partial class makeUserIdNullable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -350,7 +350,6 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
@@ -496,13 +495,13 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("Agent", "Agent")
                         .WithMany("AgentListingCases")
                         .HasForeignKey("AgentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("RecamSystemApi.Models.ListingCase", "ListingCase")
                         .WithMany("AgentListingCases")
                         .HasForeignKey("ListingCaseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Agent");
@@ -515,13 +514,13 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("Agent", "Agent")
                         .WithMany("AgentPhotographer")
                         .HasForeignKey("AgentId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Photographer", "Photographer")
                         .WithMany("AgentPhotographer")
                         .HasForeignKey("PhotographerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Agent");
@@ -594,7 +593,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
             modelBuilder.Entity("RecamSystemApi.Models.CaseContact", b =>
                 {
                     b.HasOne("RecamSystemApi.Models.ListingCase", "ListingCase")
-                        .WithMany()
+                        .WithMany("CaseContacts")
                         .HasForeignKey("ListingCaseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -607,8 +606,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("RecamSystemApi.Models.User", "User")
                         .WithMany("ListingCases")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("User");
                 });
@@ -618,7 +616,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("RecamSystemApi.Models.ListingCase", "ListingCase")
                         .WithMany("MediaAssets")
                         .HasForeignKey("ListingCaseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("RecamSystemApi.Models.User", "User")
@@ -647,6 +645,8 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
             modelBuilder.Entity("RecamSystemApi.Models.ListingCase", b =>
                 {
                     b.Navigation("AgentListingCases");
+
+                    b.Navigation("CaseContacts");
 
                     b.Navigation("MediaAssets");
                 });

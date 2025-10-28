@@ -6,14 +6,16 @@ namespace RecamSystemApi.Services;
 
 public interface IListingCasesService
 {
-    Task<ICollection<ListingCase>> GetAllListingCasesAsync();
-    Task<ApiResponse<object?>> CreateListingCaseAsync(ListingCaseDto listingCaseDto, string currentUserId);
-    Task<ApiResponse<object?>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId);
+    Task<ICollection<ListingCaseWithNavDto>> GetAllListingCasesAsync();
+    Task<ListingCaseDto> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User currentUser);
+    Task<UpdateListingCaseDto> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId);
+    Task<ListingCaseStatusDto> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId);
+    Task<List<AgentListingCase>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId);
+    Task<ICollection<ListingCase>> GetAllListingCasesByAgentAsync(string currentUserId);
+    Task<ICollection<ListingCase>> GetAllListingCasesByCreatorAsync(User currentUser);
+    Task<ListingCase> DeleteListingCaseAsync(string listingCaseId);
 
-    Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId);
-    Task<ApiResponse<ListingCaseStatusDto?>> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId);
-    Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByAgentAsync(string currentUserId);
-    Task<ApiResponse<ICollection<ListingCase>>> GetAllListingCasesByCreatorAsync(string currentUserId);
-    Task<ApiResponse<ListingCase>> DeleteListingCaseAsync(string listingCaseId);
+    Task<ICollection<ListingCaseWithNavDto>> GetAllDeletedListingCasesAsync();
+    Task<ListingCase> GetListingCaseByIdAsync(string listingCaseId);
 
 }

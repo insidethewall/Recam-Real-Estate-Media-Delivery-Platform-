@@ -8,24 +8,27 @@ namespace RecamSystemApi.Services
     {
         private readonly BlobServiceClient _blobServiceClient;
         private readonly string _containerName;
+        private readonly ILogger<AzureBlobStorageService> _logger;
 
-        public AzureBlobStorageService(BlobServiceClient blobServiceClient, IConfiguration configuration)
+        public AzureBlobStorageService(BlobServiceClient blobServiceClient, IConfiguration configuration, ILogger<AzureBlobStorageService> logger)
         {
+
             _blobServiceClient = blobServiceClient;
-            _containerName = configuration["AzureBlobStorage:ContainerName"] 
+            _containerName = configuration["AzureBlobStorage:ContainerName"]
                 ?? throw new ArgumentNullException("AzureBlobStorage:ContainerName configuration is missing.");
+            _logger = logger;
         }
 
         private void ValidateFile(IFormFile file)
         {
             var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/gif", "application/pdf", "audio/mpeg" };
-            const long maxFileSize = 10 * 1024 * 1024;
+            const long maxFileSize = 100 * 1024 * 1024 ;
 
             if (!allowedContentTypes.Contains(file.ContentType.ToLower()))
                 throw new InvalidOperationException($"File type '{file.ContentType}' is not allowed.");
 
             if (file.Length > maxFileSize)
-                throw new InvalidOperationException("File size exceeds the 10 MB limit.");
+                throw new InvalidOperationException("File size exceeds the 100 MB limit.");
         }
 
         public async Task<IDictionary<string, string>> UploadFileBulkAsync(IEnumerable<(IFormFile file, string mediaType)> files)
@@ -40,11 +43,14 @@ namespace RecamSystemApi.Services
                     var uploadedUrl = await UploadFileAsync(file, mediaType);
                     uploadedUrls[$"{Guid.NewGuid()}_{file.FileName}_{mediaType}"] = uploadedUrl;
 
-                    Console.WriteLine($"Uploaded file for page: {mediaType}, URL: {uploadedUrl}");
+                    _logger.LogInformation($"Successfully uploaded file '{file.FileName}' for media type '{mediaType}'. URL: {uploadedUrl}");
                 }
                 catch (System.Exception ex)
                 {
-                    Console.WriteLine($"Failed to upload file for page: {mediaType}. Error: {ex.Message}");
+
+                        _logger.LogError($"Failed to upload file '{file.FileName}' for media type '{mediaType}': {ex.Message}");
+                    throw new InvalidOperationException($"Failed to upload file '{file.FileName}' for media type '{mediaType}': {ex.Message}", ex);
+                    
                 }
             }
 
@@ -73,7 +79,7 @@ namespace RecamSystemApi.Services
             catch (System.Exception ex)
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
-                throw;
+                throw ;
             }
         }
 
@@ -111,8 +117,8 @@ namespace RecamSystemApi.Services
             }
             catch (System.Exception ex)
             {
-                Console.WriteLine($"An error occurred while downloading: {ex.Message}");
-                throw;
+                _logger.LogError($"An error occurred while downloading from '{blobUrl}': {ex.Message}");    
+                throw new System.Exception($"An error occurred while downloading: {ex.Message}", ex);
             }
         }
 
@@ -142,8 +148,8 @@ namespace RecamSystemApi.Services
             }
             catch (System.Exception ex)
             {
-                Console.WriteLine($"An error occurred while deleting: {ex.Message}");
-                throw;
+                _logger.LogError($"An error occurred while deleting from '{blobUrl}': {ex.Message}");
+                throw new System.Exception($"An error occurred while deleting: {ex.Message}", ex);
             }
         }
 

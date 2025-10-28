@@ -43,13 +43,14 @@ public class ReacmDbContext : IdentityDbContext<User>
             entity.HasKey(p => p.Id);
 
             entity.HasOne(p => p.User)
-                .WithOne(u=> u.Photographer)
+                .WithOne(u => u.Photographer)
                 .HasForeignKey<Photographer>(p => p.Id)
                 .OnDelete(DeleteBehavior.Cascade); // When User is deleted, Photographer is deleted
 
             entity.Property(p => p.CompanyName).IsRequired();
             entity.Property(p => p.PhotographerFirstName).IsRequired();
             entity.Property(p => p.PhotographerLastName).IsRequired();
+
         });
 
         modelBuilder.Entity<AgentPhotographer>(entity =>
@@ -60,13 +61,13 @@ public class ReacmDbContext : IdentityDbContext<User>
             .HasOne(ap => ap.Agent)
             .WithMany(a => a.AgentPhotographer)
             .HasForeignKey(ap => ap.AgentId)
-             .OnDelete(DeleteBehavior.Restrict); // Avoid cascade
+             .OnDelete(DeleteBehavior.Cascade); // When Agent is deleted, related AgentPhotographer entries are deleted
 
             entity
             .HasOne(ap => ap.Photographer)
             .WithMany(a => a.AgentPhotographer)
             .HasForeignKey(ap => ap.PhotographerId)
-            .OnDelete(DeleteBehavior.Restrict); // Avoid cascade
+            .OnDelete(DeleteBehavior.Cascade);  // When Photographer is deleted, related AgentPhotographer entries are deleted
 
         });
 
@@ -77,13 +78,14 @@ public class ReacmDbContext : IdentityDbContext<User>
             .HasOne(al => al.Agent)
             .WithMany(a => a.AgentListingCases)
             .HasForeignKey(al => al.AgentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
             entity
             .HasOne(al => al.ListingCase)
             .WithMany(a => a.AgentListingCases)
             .HasForeignKey(al => al.ListingCaseId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
         });
+       
 
         modelBuilder.Entity<ListingCase>((entity) =>
         {
@@ -148,15 +150,16 @@ public class ReacmDbContext : IdentityDbContext<User>
                 .HasDefaultValue(ListcaseStatus.Created);
 
             entity.Property(e => e.UserId)
-                .IsRequired();
+                .IsRequired(false);
 
             entity.HasOne(e => e.User)
-                .WithMany(u=>u.ListingCases)
+                .WithMany(u => u.ListingCases)
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade); // When User is deleted, ListingCases are deleted
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent deletion of User if ListingCases exist
         });
 
-        // restrict to directly delete the listing case with referenced media assets
+        
         modelBuilder.Entity<MediaAsset>(entity =>
         {
             entity.HasKey(e => e.Id);;
@@ -179,12 +182,12 @@ public class ReacmDbContext : IdentityDbContext<User>
             entity.HasOne(e => e.User)
                 .WithMany(u=>u.MediaAssets)
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); // When User is deleted, related MediaAssets are deleted
 
             entity.HasOne(e => e.ListingCase)
                 .WithMany(l => l.MediaAssets)
                 .HasForeignKey(e => e.ListingCaseId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade); // When ListingCase is deleted, related MediaAssets are deleted
         });
             
     }

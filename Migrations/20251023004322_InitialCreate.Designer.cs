@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecamSystemApi.Data;
 
@@ -11,9 +12,11 @@ using RecamSystemApi.Data;
 namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
 {
     [DbContext(typeof(ReacmDbContext))]
-    partial class ReacmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251023004322_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -347,6 +350,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("UserId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
@@ -498,7 +502,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("RecamSystemApi.Models.ListingCase", "ListingCase")
                         .WithMany("AgentListingCases")
                         .HasForeignKey("ListingCaseId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Agent");
@@ -590,7 +594,7 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
             modelBuilder.Entity("RecamSystemApi.Models.CaseContact", b =>
                 {
                     b.HasOne("RecamSystemApi.Models.ListingCase", "ListingCase")
-                        .WithMany("CaseContacts")
+                        .WithMany()
                         .HasForeignKey("ListingCaseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -603,7 +607,8 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
                     b.HasOne("RecamSystemApi.Models.User", "User")
                         .WithMany("ListingCases")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -642,8 +647,6 @@ namespace Recam_Real_Estate_Media_Delivery_Platform_.Migrations
             modelBuilder.Entity("RecamSystemApi.Models.ListingCase", b =>
                 {
                     b.Navigation("AgentListingCases");
-
-                    b.Navigation("CaseContacts");
 
                     b.Navigation("MediaAssets");
                 });

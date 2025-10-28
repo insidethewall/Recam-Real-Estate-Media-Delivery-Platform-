@@ -22,11 +22,13 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
         builder.Services.AddControllers()
                 .AddJsonOptions(options=>
                 { 
-                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                    options.JsonSerializerOptions.WriteIndented = true;
                 });
 
         builder.Services.AddDbContext<ReacmDbContext>(options =>
@@ -152,6 +154,7 @@ public class Program
             {
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
                 await RoleSeeder.SeedRolesAsync(services);
+                await AdminSeeder.SeedAdminAsync(services);
             }
             catch (System.Exception ex)
             {

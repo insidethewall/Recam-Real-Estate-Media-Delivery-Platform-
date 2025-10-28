@@ -17,8 +17,9 @@ public class UserService : IUserService
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IUserRepository _userRepository;
     private readonly IEmailSender _emailSender;
+    private readonly ILogger<UserService> _logger;
 
-    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender)
+    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger)
     {
         _context = context;
         _userManager = userManager;
@@ -26,19 +27,21 @@ public class UserService : IUserService
         _jwtTokenService = jwtTokenService;
         _userRepository = userRepository;
         _emailSender = emailSender;
+        _logger = logger;
     }
 
 
     public async Task<string> CreateAgentAsync(AgentCreateDto registerRequest, string currentUserId)
     {
         string password = PasswordGenerator.GenerateStrongPassword();
+        _logger.LogInformation($"Generated password for new agent: {password}");
+
         User user = new User
         {
             Email = registerRequest.Email,
             UserName = registerRequest.Email,
             CreatedAt = DateTime.UtcNow
         };
-        Console.WriteLine($"UserName: {user.UserName}");
         var roleName = Role.Agent.ToString();
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
@@ -73,28 +76,32 @@ public class UserService : IUserService
         }
     }
 
+    public async Task<AgentPhotographer> AddAgentAsync(User currentUser, User agentUser)
+    {
+        AgentPhotographer agentPhotographer = await _userRepository.CreateAgentPhotographerAsync(currentUser, agentUser);
+        return agentPhotographer;
+    }
+
 
     // only Admin can delete users
-    public async Task<ApiResponse<object?>> DeleteUserAsync(string currentUserId, string targetUserId)
+    public async Task<UserDeletionDto> DeleteUserAsync(string currentUserId, string targetUserId)
     {
         User? currentUser = await _userManager.FindByIdAsync(currentUserId);
-        Console.WriteLine($"Current User : {currentUser?.UserName}");
         User? targetUser = await _userManager.FindByIdAsync(targetUserId);
         if (currentUser == null)
-            return ApiResponse<object?>.Fail("Current user Unauthorize.", "401");
+            throw new System.Exception("Current user not found.");
         if (targetUser == null)
-            return ApiResponse<object?>.Fail("User not found.", "404");
+           throw new System.Exception("Target user not found.");
 
         var targetRoles = await _userManager.GetRolesAsync(targetUser);
         var currentRoles = await _userManager.GetRolesAsync(currentUser);
-        Console.WriteLine($"Current User Roles: {string.Join(", ", currentRoles)}");
         var targetRole = targetRoles.FirstOrDefault();
         var currentRole = currentRoles.FirstOrDefault();
         if (currentRole == null || targetRole == null)
-            return ApiResponse<object?>.Fail("User roles not found.", "404");
+            throw new System.Exception("User roles not found.");
         // Check permissions
         if (currentRole == Role.Agent.ToString() || currentRole == Role.Photographer.ToString())
-            return ApiResponse<object?>.Fail($"{currentRole} are not allowed to delete any users.", "403");
+            throw new System.Exception("You do not have permission to delete users.");
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
@@ -103,19 +110,29 @@ public class UserService : IUserService
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                return ApiResponse<object?>.Fail($"User deletion failed: {errors}", "500");
+                throw new System.Exception($"Failed to delete user: {errors}");
             }
+            // Already cascade delete related data in the database
+            // ICollection<AgentPhotographer> deletedAgentPhotographers = await _userRepository.DeleteAgentPhotographerCompany(targetUser);
+            UserDeletionDto userDeletionDto = new UserDeletionDto
+            {
+                user = targetUser,
+            };
+
+            // Delete Photographer, MediaAssets
             if (targetRole == Role.Photographer.ToString())
             {
-                await _userRepository.DeleteAgentPhotographerCompany(targetUserId);
+                Photographer photographer = _userRepository.DeletePhotographer(targetUser);
+                userDeletionDto.photographer = photographer;
             }
             else if (targetRole == Role.Agent.ToString())
             {
-                await _userRepository.DeleteAgentPhotographerCompany(targetUserId);
-                //ToDo: Delete AgentListing cases
+                Agent agent = _userRepository.DeleteAgent(targetUser);
+                userDeletionDto.agent = agent;
             }
+
             await transaction.CommitAsync();
-            return ApiResponse<object?>.Success(targetUser, "User deleted successfully.");
+            return userDeletionDto;
 
         }
         catch (System.Exception ex)
@@ -123,35 +140,12 @@ public class UserService : IUserService
             await transaction.RollbackAsync();
             targetUser.IsDeleted = false;
             IdentityResult result = await _userManager.UpdateAsync(targetUser);
-            return ApiResponse<object?>.Fail($"Internal server error: {ex.Message}", "500");
+            throw new System.Exception($"Error deleting user: {ex.Message}");
+            
         }
     }
 
-    public async Task<ApiResponse<object?>> AddAgentAsync(string agentEmail, string currentUserId)
-    {
-        User? currentUser = await _userManager.FindByIdAsync(currentUserId);
-        if (currentUser == null)
-            return ApiResponse<object?>.Fail("Current user not found.", "404");
 
-        if (!await _userManager.IsInRoleAsync(currentUser, Role.Photographer.ToString()))
-            return ApiResponse<object?>.Fail("Only photographers can add agents.", "403");
-
-        User? agentUser = await _userManager.FindByEmailAsync(agentEmail);
-        if (agentUser == null)
-            return ApiResponse<object?>.Fail("Agent not found.", "404");
-
-        if (!await _userManager.IsInRoleAsync(agentUser, Role.Agent.ToString()))
-            return ApiResponse<object?>.Fail("This user is not an agent.", "403");
-        try
-        {
-            await _userRepository.CreateAgentPhotographerAsync(currentUser.Id, agentUser.Id);
-            return ApiResponse<object?>.Success(agentUser, "Agent added successfully.");
-        }
-        catch (System.Exception ex)
-        {
-            return ApiResponse<object?>.Fail($"Error adding agent: {ex.Message}", "500");
-        }
-    }
 
     public async Task<ICollection<UserInfoDto>> GetAllAgentsAsync()
     {

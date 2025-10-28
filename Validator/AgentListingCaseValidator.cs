@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RecamSystemApi.Data;
 using RecamSystemApi.Enums;
+using RecamSystemApi.Exception;
 using RecamSystemApi.Models;
-using RecamSystemApi.Utility;
+
 
 
 public class AgentListingCaseValidator : IAgentListingCaseValidator
@@ -20,45 +21,92 @@ public class AgentListingCaseValidator : IAgentListingCaseValidator
       
     }
 
-    public async Task<ApiResponse<object?>> ValidateAgentAndListingCaseAsync(string agentId, string listingCaseId)
+    public async Task ValidateAgentAndListingCaseAsync(string agentId, string listingCaseId)
     {
         var exists = await _context.AgentListingCases
             .AnyAsync(alc => alc.AgentId == agentId && alc.ListingCaseId == listingCaseId);
 
         if (exists)
-            return ApiResponse<object?>.Fail($"Agent with ID {agentId} is already added to the listing case.", "400");
-        return ApiResponse<object?>.Success(null, "Agent and listing case validation successful.");
+            throw new Exception($"Agent with ID {agentId} is already associated with listing case ID {listingCaseId}.");
+       
     }
 
-    public async Task<ApiResponse<Agent?>> ValidateAgentAsync(string agentId)
+    // public async Task<User> ValidateUser(string userId)
+    // {
+    //     var user = await _userManager.FindByIdAsync(userId);
+    //     if (user == null)
+    //         throw new NotFoundException($"User with ID {userId} not found.");
+
+    //     if (user.IsDeleted)
+    //         throw new Exception($"User with ID {userId} is deleted.");
+
+    //     return user;
+    // }
+
+    // public async Task<User> ValidateRole(User user, Role role)
+    // { 
+    //     var roles = await _userManager.GetRolesAsync(user);
+    //     var userRole = roles.FirstOrDefault();
+    //     if (userRole != role.ToString())
+    //         throw new Exception($"User with ID {user.Id} is not {role}.");
+    //     switch (role)
+    //     { 
+    //         case Role.Agent:
+    //             Agent? agent = user.Agent;
+    //             if (agent == null)
+    //                 throw new Exception($"Agent profile for user ID {user.Id} not found.");
+    //             break;
+    //         case Role.Photographer:
+    //             Photographer? photographer = user.Photographer;
+    //             if (photographer == null)
+    //                 throw new Exception($"Photographer profile for user ID {user.Id} not found.");
+    //             break;
+    //         default:
+    //             throw new Exception($"Role {role} validation not implemented.");
+    //     }
+    //     return user;
+    // }
+
+    public async Task<User> ValidateUserByRoleAsync(string userId, Role role)
     {
-        var user = await _userManager.FindByIdAsync(agentId);
+        var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
-            return ApiResponse<Agent?>.Fail($"Agent with ID {agentId} not found.", "404");
+            throw new NotFoundException($"User with ID {userId} not found.");
 
         if (user.IsDeleted)
-            return ApiResponse<Agent?>.Fail($"Agent with ID {agentId} is deleted.", "403");
+            throw new Exception($"User with ID {userId} is deleted.");
 
         var roles = await _userManager.GetRolesAsync(user);
         var userRole = roles.FirstOrDefault();
-        if (userRole != Role.Agent.ToString())
-            return ApiResponse<Agent?>.Fail($"User with ID {agentId} is not an agent.", "403");
+        if (userRole != role.ToString())
+            throw new Exception($"User with ID {userId} is not {role}.");
+        if (role == Role.Agent)
+        {
+            Agent? agent = user.Agent;
+            if (agent == null)
+                throw new Exception($"Agent profile for user ID {userId} not found.");
+        }
+        if (role == Role.Photographer)
+        {
+            Photographer? photographer = user.Photographer;
+            if (photographer == null)
+                throw new Exception($"Photographer profile for user ID {userId} not found.");
+        }
+        return user;
 
-        var agent = user.Agent;
-        if (agent == null)
-            return ApiResponse<Agent?>.Fail($"User with ID {agentId} does not have an associated Agent entity.", "403");
-        return ApiResponse<Agent?>.Success(agent);
+
+
     }
 
-    public async Task<ApiResponse<ListingCase?>> ValidateListingCaseAsync(string listingCaseId)
+    public async Task<ListingCase> ValidateListingCaseAsync(string listingCaseId)
     {
-        var listingCase = await _context.ListingCases.FindAsync(listingCaseId);
+        ListingCase? listingCase = await _context.ListingCases.FindAsync(listingCaseId);
         if (listingCase == null)
-            return ApiResponse<ListingCase?>.Fail($"Listing case with ID {listingCaseId} not found.", "404");
+           throw new Exception($"Listing case with ID {listingCaseId} not found.");
 
         if (listingCase.IsDeleted)
-            return ApiResponse<ListingCase?>.Fail($"Listing case with ID {listingCaseId} is deleted.", "403");
+            throw new Exception($"Listing case with ID {listingCaseId} is deleted.");
 
-        return ApiResponse<ListingCase?>.Success(listingCase);
+        return listingCase;
     }
 }

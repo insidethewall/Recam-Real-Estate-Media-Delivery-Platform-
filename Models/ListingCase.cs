@@ -59,12 +59,12 @@ namespace RecamSystemApi.Models;
         public ListcaseStatus ListcaseStatus { get; set; } = ListcaseStatus.Created;
 
         // Foreign Key (User)
-        public required string UserId { get; set; }
-        public required User User { get; set; }
+        public  string? UserId { get; set; }
+        public  User? User { get; set; }
         
-        public ICollection<AgentListingCase> AgentListingCases = new List<AgentListingCase>();
+        public ICollection<AgentListingCase> AgentListingCases { get; set; } = new List<AgentListingCase>();
 
-
-        public ICollection<MediaAsset> MediaAssets = new List<MediaAsset>();
-        public ICollection<CaseContact> CaseContacts =  new List<CaseContact>();
+        
+        public ICollection<MediaAsset> MediaAssets{ get; set; } = new List<MediaAsset>();
+        public ICollection<CaseContact> CaseContacts{ get; set; } =  new List<CaseContact>();
     }
