@@ -14,6 +14,8 @@ public class AuthService : IAuthService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IAuthRepository _authRepository;
+    private readonly IGeneralRepository _generalRepository;
+    private readonly IAzureBlobStorageService _blobStorageService;
 
 
 
@@ -21,13 +23,15 @@ public class AuthService : IAuthService
     /// CTOR
     /// </summary>
     /// <param name="userManager"></param>
-    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository)
+    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService)
     {
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _jwtTokenService = jwtTokenService;
         _authRepository = authRepository;
+        _generalRepository = generalRepository;
+        _blobStorageService = blobStorageService;
     }
 
     // only for Photographer roles
@@ -51,9 +55,20 @@ public class AuthService : IAuthService
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
                 throw new UserRegistrationException($"User creation failed: {errors}");
             }
+            string? avatarUrl = null;
+            if (registerRequest.Avatar != null)
+            { 
+                 avatarUrl =  await _blobStorageService.UploadFileAsync(registerRequest.Avatar, "Agent-avatars");
+            }
 
+            
             await _userManager.AddToRoleAsync(user, roleName);
-            await _authRepository.CreatePhotographerAsync(registerRequest, user);
+            Photographer photographer = _generalRepository.MapDto<IUserProfileDto, Photographer>(registerRequest);
+            photographer.Id = user.Id;
+            photographer.User = user;
+            photographer.AvatarUrl = avatarUrl;
+            await _authRepository.CreatePhotographerAsync(photographer);
+            await _generalRepository.SaveChangesAsync();
             await transaction.CommitAsync();
             string token = await _jwtTokenService.GenerateTokenAsync(user);
             return token;

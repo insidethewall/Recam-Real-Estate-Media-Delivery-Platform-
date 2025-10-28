@@ -26,7 +26,7 @@ public class UserController : ControllerBase
     // Endpoint to register an agent, only accessible by Admin
     [Authorize(Roles = "Admin")]
     [HttpPost("registerAgent")]
-    public async Task<IActionResult> RegisterAgent([FromBody] AgentCreateDto registerRequest)
+    public async Task<IActionResult> RegisterAgent([FromForm] AgentCreateDto registerRequest)
     {
         string? currentUserId = User.FindFirst("UserId")?.Value;
         if (string.IsNullOrEmpty(currentUserId))

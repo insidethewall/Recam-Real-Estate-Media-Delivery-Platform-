@@ -1,6 +1,6 @@
 namespace RecamSystemApi.DTOs;
 
-public class AgentDto : IUserProfileDto
+public class AgentDto 
 {
 
     public required string CompanyName { get; set; } 

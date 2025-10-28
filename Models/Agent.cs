@@ -21,7 +21,7 @@ public class Agent
 
     public string? AvatarUrl { get; set; }
 
-    public ICollection<AgentListingCase> AgentListingCases = new List<AgentListingCase>();
-    public ICollection<AgentPhotographer> AgentPhotographer = new List<AgentPhotographer>();
+    public ICollection<AgentListingCase> AgentListingCases { get; set; } = new List<AgentListingCase>();
+    public ICollection<AgentPhotographer> AgentPhotographer { get; set; } = new List<AgentPhotographer>();
 
 }
