@@ -13,19 +13,11 @@ public class AuthRepository : IAuthRepository
         _context = context;
     }
 
-    public async Task CreatePhotographerAsync(IUserProfileDto photographerDto, User user)
+    public async Task CreatePhotographerAsync(Photographer photographer)
     {
-        Photographer photographer = new Photographer
-        {
-            Id = user.Id,
-            User = user,
-            CompanyName = photographerDto.CompanyName,
-            PhotographerFirstName = photographerDto.FirstName,
-            PhotographerLastName = photographerDto.LastName,
-            AvatarUrl = photographerDto.AvatarUrl
-        };
+ 
         await _context.PhotographyCompanies.AddAsync(photographer);
-        await _context.SaveChangesAsync();
+    
     }
 
 }

@@ -1,6 +1,6 @@
 namespace RecamSystemApi.DTOs;
 
-public class UserInfoDto : IUserProfileDto
+public class UserInfoDto 
 {
     public required string Id { get; set; }
     public required string Email { get; set; }

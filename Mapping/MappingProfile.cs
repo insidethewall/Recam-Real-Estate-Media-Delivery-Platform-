@@ -14,6 +14,15 @@ public class MappingProfile : Profile
     .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
     .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
+    IMappingExpression<IUserProfileDto, Agent> AgentMapper = CreateMap<IUserProfileDto, Agent>()
+    .ForMember(dest => dest.AgentFirstName, opt => opt.MapFrom(src => src.FirstName))
+    .ForMember(dest => dest.AgentLastName, opt => opt.MapFrom(src => src.LastName));
+
+    IMappingExpression<IUserProfileDto, Photographer> PhotographerMapper = CreateMap<IUserProfileDto, Photographer>()
+    .ForMember(dest => dest.PhotographerFirstName, opt => opt.MapFrom(src => src.FirstName))
+    .ForMember(dest => dest.PhotographerLastName, opt => opt.MapFrom(src => src.LastName));
+    
+
     IMappingExpression<Agent, RegisterRequestDto> AgentDtoMapper = CreateMap<Agent, RegisterRequestDto>();
 
     IMappingExpression<ListingCaseDto, ListingCase> ListingCaseDtoMapper = CreateMap<ListingCaseDto, ListingCase>()

@@ -1,6 +1,6 @@
 namespace RecamSystemApi.DTOs;
 
-public class PhotographerDto : IUserProfileDto
+public class PhotographerDto 
 {
    
     public required string CompanyName { get; set; } 

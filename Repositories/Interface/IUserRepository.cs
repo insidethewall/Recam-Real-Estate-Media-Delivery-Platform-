@@ -3,7 +3,7 @@ using RecamSystemApi.Models;
 
 public interface IUserRepository
 {
-    public Task CreateAgentAsync(IUserProfileDto userProfile, User user);
+    public Task CreateAgentAsync(Agent userProfile, User user);
     public Task<AgentPhotographer> CreateAgentPhotographerAsync(User currentUser, User agentUser);
     public Task<ICollection<AgentPhotographer>> DeleteAgentPhotographerCompany(User user);
 

@@ -12,17 +12,8 @@ public class UserRepository : IUserRepository
         _context = context;
     }
 
-    public async Task CreateAgentAsync(IUserProfileDto userProfile, User user)
+    public async Task CreateAgentAsync(Agent agent, User user)
     {
-        var agent = new Agent
-        {
-            Id = user.Id,
-            User = user,
-            CompanyName = userProfile.CompanyName,
-            AgentFirstName = userProfile.FirstName,
-            AgentLastName = userProfile.LastName,
-            AvatarUrl = userProfile.AvatarUrl,
-        };
         await _context.Agents.AddAsync(agent);
     }
     public async Task<AgentPhotographer> CreateAgentPhotographerAsync(User currentUser, User agentUser)

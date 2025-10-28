@@ -19,8 +19,9 @@ public class UserService : IUserService
     private readonly IEmailSender _emailSender;
     private readonly ILogger<UserService> _logger;
     private readonly IGeneralRepository _generalRepository;
+    private readonly IAzureBlobStorageService _blobStorageService;
 
-    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger, IGeneralRepository generalRepository)
+    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService)
     {
         _context = context;
         _userManager = userManager;
@@ -30,6 +31,7 @@ public class UserService : IUserService
         _emailSender = emailSender;
         _logger = logger;
         _generalRepository = generalRepository;
+        _blobStorageService = blobStorageService;
     }
 
 
@@ -60,7 +62,18 @@ public class UserService : IUserService
             }
 
             await _userManager.AddToRoleAsync(user, roleName);
-            await _userRepository.CreateAgentAsync(registerRequest, user);
+            string? avatarUrl = null;
+            if (registerRequest.Avatar != null)
+            { 
+                 avatarUrl =  await _blobStorageService.UploadFileAsync(registerRequest.Avatar, "Agent-avatars");
+            }
+
+            Agent agent = _generalRepository.MapDto<IUserProfileDto, Agent>(registerRequest);
+            agent.Id = user.Id;
+            agent.User = user;
+            agent.AvatarUrl = avatarUrl; 
+
+            await _userRepository.CreateAgentAsync(agent, user);
             await _generalRepository.SaveChangesAsync();
             await transaction.CommitAsync();
             string token = await _jwtTokenService.GenerateTokenAsync(user);
@@ -126,12 +139,17 @@ public class UserService : IUserService
             // Delete Photographer, MediaAssets
             if (targetRole == Role.Photographer.ToString())
             {
+
                 Photographer photographer = _userRepository.DeletePhotographer(targetUser);
+                if (!string.IsNullOrEmpty(photographer.AvatarUrl))
+                    await _blobStorageService.DeleteFileAsync(photographer.AvatarUrl);
                 userDeletionDto.photographer = photographer;
             }
             else if (targetRole == Role.Agent.ToString())
             {
                 Agent agent = _userRepository.DeleteAgent(targetUser);
+                if (!string.IsNullOrEmpty(agent.AvatarUrl))
+                    await _blobStorageService.DeleteFileAsync(agent.AvatarUrl);
                 userDeletionDto.agent = agent;
             }
             await _generalRepository.SaveChangesAsync();

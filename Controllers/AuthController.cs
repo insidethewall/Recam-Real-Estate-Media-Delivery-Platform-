@@ -21,7 +21,7 @@ namespace RecamSystemApi.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequest)
+        public async Task<IActionResult> Register([FromForm] RegisterRequestDto registerRequest)
         {
             try
             { 
