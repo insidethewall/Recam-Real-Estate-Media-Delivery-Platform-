@@ -24,7 +24,6 @@ public class UserRepository : IUserRepository
             AvatarUrl = userProfile.AvatarUrl,
         };
         await _context.Agents.AddAsync(agent);
-        await _context.SaveChangesAsync();
     }
     public async Task<AgentPhotographer> CreateAgentPhotographerAsync(User currentUser, User agentUser)
     {
@@ -44,7 +43,6 @@ public class UserRepository : IUserRepository
             Agent = agent
         };
         await _context.AgentPhotographers.AddAsync(agentPhotographer);
-        await _context.SaveChangesAsync();
         return agentPhotographer;
 
     }
@@ -55,7 +53,7 @@ public class UserRepository : IUserRepository
             .Where(ap => ap.PhotographerId == user.Id || ap.AgentId == user.Id)
             .ToListAsync();
         _context.AgentPhotographers.RemoveRange(agentPhotographers);
-        await _context.SaveChangesAsync();
+
         return agentPhotographers;
 
     }
@@ -71,7 +69,7 @@ public class UserRepository : IUserRepository
                 throw new Exception($"Photographer with ID {userId} not found.");
             }
             _context.PhotographyCompanies.Remove(photographer);
-            await _context.SaveChangesAsync();
+
             return photographer;
         }
         catch (Exception ex)

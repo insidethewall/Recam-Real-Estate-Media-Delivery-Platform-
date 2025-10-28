@@ -18,8 +18,9 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<UserService> _logger;
+    private readonly IGeneralRepository _generalRepository;
 
-    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger)
+    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger, IGeneralRepository generalRepository)
     {
         _context = context;
         _userManager = userManager;
@@ -28,6 +29,7 @@ public class UserService : IUserService
         _userRepository = userRepository;
         _emailSender = emailSender;
         _logger = logger;
+        _generalRepository = generalRepository;
     }
 
 
@@ -59,6 +61,7 @@ public class UserService : IUserService
 
             await _userManager.AddToRoleAsync(user, roleName);
             await _userRepository.CreateAgentAsync(registerRequest, user);
+            await _generalRepository.SaveChangesAsync();
             await transaction.CommitAsync();
             string token = await _jwtTokenService.GenerateTokenAsync(user);
             await _emailSender.SendEmailAsync(
@@ -79,6 +82,7 @@ public class UserService : IUserService
     public async Task<AgentPhotographer> AddAgentAsync(User currentUser, User agentUser)
     {
         AgentPhotographer agentPhotographer = await _userRepository.CreateAgentPhotographerAsync(currentUser, agentUser);
+        await _generalRepository.SaveChangesAsync();
         return agentPhotographer;
     }
 
@@ -130,7 +134,7 @@ public class UserService : IUserService
                 Agent agent = _userRepository.DeleteAgent(targetUser);
                 userDeletionDto.agent = agent;
             }
-
+            await _generalRepository.SaveChangesAsync();
             await transaction.CommitAsync();
             return userDeletionDto;
 
