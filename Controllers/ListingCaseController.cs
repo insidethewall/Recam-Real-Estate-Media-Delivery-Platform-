@@ -28,7 +28,7 @@ public class ListingCaseController : ControllerBase
     public async Task<IActionResult> CreateListingCase([FromBody] ListingCaseDto listingCaseDto)
     {
         try
-        { 
+        {
             string? currentUserId = User.FindFirst("UserId")?.Value;
             if (string.IsNullOrEmpty(currentUserId))
             {
@@ -39,7 +39,7 @@ public class ListingCaseController : ControllerBase
             {
                 return Unauthorized(ApiResponse<object?>.Fail("Current user not found.", "401"));
             }
-            if(currentUser.IsDeleted)
+            if (currentUser.IsDeleted)
             {
                 return Unauthorized(ApiResponse<string>.Fail("User account is deleted.", "401"));
             }
@@ -50,13 +50,14 @@ public class ListingCaseController : ControllerBase
 
             ListingCaseDto response = await _service.CreateListingCaseAsync(listingCaseDto, currentUser);
             return StatusCode(201, ApiResponse<ListingCaseDto>.Success(response));
-            
-        } catch (System.Exception ex)
+
+        }
+        catch (System.Exception ex)
         {
             return StatusCode(500, ApiResponse<string>.Fail($"Error creating listing case: {ex.Message}", "500"));
         }
 
-          
+
     }
 
     [Authorize(Roles = "Admin, Photographer")]
@@ -89,7 +90,8 @@ public class ListingCaseController : ControllerBase
 
     [Authorize(Roles = "Admin, Photographer")]
     [HttpPatch("{listingcaseId}/status")]
-    public async Task<IActionResult> ChangeListingCaseStatus([FromBody] ListcaseStatus listingCaseStatus, [FromRoute] string listingcaseId) {
+    public async Task<IActionResult> ChangeListingCaseStatus([FromBody] ListcaseStatus listingCaseStatus, [FromRoute] string listingcaseId)
+    {
         if (string.IsNullOrEmpty(listingcaseId))
         {
             return BadRequest(ApiResponse<string>.Fail("Listing case ID cannot be null or empty.", "400"));
@@ -109,10 +111,10 @@ public class ListingCaseController : ControllerBase
             return BadRequest(ApiResponse<string>.Fail($"Error updating listing case status: {ex.Message}", "500"));
         }
 
-   
-    }    
 
-    [Authorize(Roles = "Admin, Photographer")]
+    }
+
+    [Authorize(Roles = "Photographer")]
     [HttpPost("addAgentsToListingCase/{listingCaseId}")]
     public async Task<IActionResult> AddAgentsToListingCase([FromBody] ICollection<string> agentIds, [FromRoute] string listingCaseId)
     {
@@ -127,8 +129,8 @@ public class ListingCaseController : ControllerBase
         try
         {
             List<AgentListingCase> response = await _service.AddAgentsToListingCaseAsync(agentIds, listingCaseId);
-               return Ok(ApiResponse<List<AgentListingCase>>.Success(response, "Agents added to listing case successfully."));
-            
+            return Ok(ApiResponse<List<AgentListingCase>>.Success(response, "Agents added to listing case successfully."));
+
         }
         catch (System.Exception ex)
         {
@@ -145,7 +147,7 @@ public class ListingCaseController : ControllerBase
         {
             return Unauthorized(ApiResponse<string>.Fail("User ID not found in token.", "401"));
         }
-   
+
         try
         {
             ICollection<ListingCase> response = await _service.GetAllListingCasesByAgentAsync(userId);
@@ -155,8 +157,8 @@ public class ListingCaseController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail($"Error retrieving listing cases: {ex.Message}", "500"));
         }
-     
-            
+
+
     }
 
     [Authorize(Roles = "Admin, Photographer")]
@@ -169,7 +171,7 @@ public class ListingCaseController : ControllerBase
             return Unauthorized(ApiResponse<string>.Fail("User ID not found in token.", "401"));
         }
         User? currentUser = await _userManager.FindByIdAsync(userId);
-        
+
         if (currentUser == null)
         {
             return Unauthorized(ApiResponse<string>.Fail("Current user not found.", "401"));
@@ -188,7 +190,7 @@ public class ListingCaseController : ControllerBase
         {
             return BadRequest($"Error retrieving listing cases: {ex.Message}");
         }
-         
+
     }
 
     [Authorize(Roles = "Admin, Photographer")]
@@ -208,7 +210,14 @@ public class ListingCaseController : ControllerBase
         {
             return BadRequest(ApiResponse<string>.Fail($"Error deleting listing case: {ex.Message}", "500"));
         }
- 
+
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetListingCaseById([FromRoute] string id)
+    {
+        ListingCase listingCase = await _service.GetListingCaseByIdAsync(id);
+       return Ok(ApiResponse<ListingCase>.Success(listingCase, "Listing case retrieved successfully."));
     }
 
     [HttpGet]
@@ -216,8 +225,16 @@ public class ListingCaseController : ControllerBase
     {
         ICollection<ListingCaseWithNavDto> listingCases = await _service.GetAllListingCasesAsync();
         return Ok(ApiResponse<ICollection<ListingCaseWithNavDto>>.Success(listingCases, "Listing cases retrieved successfully."));
+
+    }
+
+    [HttpGet("deleted")]
+    public async Task<ActionResult<ICollection<ListingCaseWithNavDto>>> GetAllDeletedListingCasesAsync()
+    { 
+        ICollection<ListingCaseWithNavDto> listingCases = await _service.GetAllDeletedListingCasesAsync();
+        return Ok(ApiResponse<ICollection<ListingCaseWithNavDto>>.Success(listingCases, "Soft Deleted Listing cases retrieved successfully."));
         
-    } 
+    }
 
 
 

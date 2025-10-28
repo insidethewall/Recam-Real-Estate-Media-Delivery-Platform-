@@ -57,7 +57,11 @@ public class ListingCasesRepository : IListingCasesRepository
 
     public async Task<ListingCase> GetListingCaseByIdAsync(string listingCaseId)
     {
-        ListingCase listingCase = await _dbContext.ListingCases.FirstAsync(lc => lc.Id == listingCaseId && !lc.IsDeleted);
+        ListingCase listingCase = await _dbContext.ListingCases
+            .Include(lc => lc.MediaAssets)
+            .Include(lc => lc.AgentListingCases)
+            .Include(lc => lc.CaseContacts)
+            .FirstAsync(lc => lc.Id == listingCaseId && !lc.IsDeleted);
 
         return listingCase;
     }
@@ -79,17 +83,45 @@ public class ListingCasesRepository : IListingCasesRepository
             .Include(lc => lc.MediaAssets)
             .Include(lc => lc.AgentListingCases)
             .Include(lc => lc.CaseContacts)
+            .Where(lc => !lc.IsDeleted)
+            .ToListAsync();
+
+        var dtoList = _mapper.Map<List<ListingCaseWithNavDto>>(listings);
+        return dtoList;
+    }
+       public async Task<ICollection<ListingCaseWithNavDto>> GetAllDeletedListingCasesAsync()
+    {
+        var listings = await _dbContext.ListingCases
+            .Include(lc => lc.User)
+            .Include(lc => lc.MediaAssets)
+            .Include(lc => lc.AgentListingCases)
+            .Include(lc => lc.CaseContacts)
+            .Where(lc => lc.IsDeleted)
             .ToListAsync();
 
         var dtoList = _mapper.Map<List<ListingCaseWithNavDto>>(listings);
         return dtoList;
     }
 
-    public void DeleteListingCase(ListingCase listingCase)
+
+    public void SoftDeleteListingCase(ListingCase listingCase)
     {
 
         listingCase.IsDeleted = true;
         _dbContext.ListingCases.Update(listingCase);
+
+    }
+
+
+  // TODO: DO I need to unbind the relationships of listing case when soft delete?
+    public void SoftDeleteMeidaAssetsByListingCase(ListingCase listingCase)
+    {
+        ICollection<MediaAsset> mediaAssets = _dbContext.MediaAssets.Where(ma => ma.ListingCaseId == listingCase.Id).ToList();
+        foreach (var mediaAsset in mediaAssets)
+        {
+            mediaAsset.IsDeleted = true;
+        }
+        _dbContext.MediaAssets.UpdateRange(mediaAssets);
 
     }
 

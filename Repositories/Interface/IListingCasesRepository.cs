@@ -5,6 +5,8 @@ using RecamSystemApi.Utility;
 public interface IListingCasesRepository
 {
     Task<ICollection<ListingCaseWithNavDto>> GetAllListingCasesAsync();
+
+    Task<ICollection<ListingCaseWithNavDto>> GetAllDeletedListingCasesAsync();
     Task<ApiResponse<object?>> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User user);
     // Task<ApiResponse<object?>> CreateAgentListingCaseAsync(Agent agent, ListingCase listingCase);
     Task<ListingCase> GetListingCaseByIdAsync(string listingCaseId);
@@ -12,7 +14,9 @@ public interface IListingCasesRepository
     ICollection<ListingCase> GetAllListingCasesByAgentAsync(Agent agent);
     // Task<ApiResponse<UpdateListingCaseDto?>> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId);
     void DeleteAgentListingCase(ListingCase listingCase);
-    void DeleteListingCase(ListingCase listingCase);
+    void SoftDeleteListingCase(ListingCase listingCase);
+
+    void SoftDeleteMeidaAssetsByListingCase(ListingCase listingCase);
     void RemoveListingCaseFromUser(ListingCase listingCase);
     Task AddAgentListingCaseAsync(AgentListingCase agentListingCase);
     Task AddListingCaseAsync(ListingCase listingCase);

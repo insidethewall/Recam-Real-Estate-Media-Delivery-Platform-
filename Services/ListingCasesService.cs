@@ -18,10 +18,7 @@ public class ListingCasesService : IListingCasesService
         _validator = validator;
     }
 
-    public async Task<ICollection<ListingCaseWithNavDto>> GetAllListingCasesAsync()
-    {
-        return await _repository.GetAllListingCasesAsync();
-    }
+  
 
     public async Task<ListingCaseDto> CreateListingCaseAsync(ListingCaseDto listingCaseDto, User currentUser)
     {
@@ -33,18 +30,18 @@ public class ListingCasesService : IListingCasesService
 
     }
 
-// just basic update, no references update
+    // just basic update, no references update
     public async Task<UpdateListingCaseDto> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId)
     {
-            ListingCase existingListingCase = await _repository.GetListingCaseByIdAsync(listingCaseId);
-            _generalRepository.MapDtoUpdate(listingCaseDto, existingListingCase);
-            await _generalRepository.SaveChangesAsync();
-            return listingCaseDto;
+        ListingCase existingListingCase = await _repository.GetListingCaseByIdAsync(listingCaseId);
+        _generalRepository.MapDtoUpdate(listingCaseDto, existingListingCase);
+        await _generalRepository.SaveChangesAsync();
+        return listingCaseDto;
     }
 
     public async Task<ListingCaseStatusDto> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId)
     {
-        
+
         ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
 
         listingCase.ListcaseStatus = newStatus;
@@ -59,7 +56,7 @@ public class ListingCasesService : IListingCasesService
         return statusDto;
 
     }
-    
+
     public async Task<List<AgentListingCase>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId)
     {
 
@@ -100,7 +97,7 @@ public class ListingCasesService : IListingCasesService
     {
         User user = await _validator.ValidateUserByRoleAsync(currentUserId, Role.Agent);
         Agent agent = user.Agent!;
-        ICollection<ListingCase> listingCases =  _repository.GetAllListingCasesByAgentAsync(agent);
+        ICollection<ListingCase> listingCases = _repository.GetAllListingCasesByAgentAsync(agent);
         return listingCases;
     }
 
@@ -110,25 +107,45 @@ public class ListingCasesService : IListingCasesService
         return listingCases;
     }
 
+
     public async Task<ListingCase> DeleteListingCaseAsync(string listingCaseId)
     {
         await using var transaction = await _generalRepository.BeginTransactionAsync();
         try
         {
             ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
-            _repository.DeleteListingCase(listingCase);
+            _repository.SoftDeleteListingCase(listingCase);
             _repository.DeleteAgentListingCase(listingCase);
             _repository.RemoveListingCaseFromUser(listingCase);
+            _repository.SoftDeleteMeidaAssetsByListingCase(listingCase);
             await _generalRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
             return listingCase;
 
         }
-           catch (Exception ex)
+        catch (Exception ex)
         {
             await transaction.RollbackAsync();
             throw new Exception($"Error deleting listingCases: {ex.Message}");
         }
 
+    }
+
+    public async Task<ListingCase> GetListingCaseByIdAsync(string listingCaseId)
+    {
+        ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
+        ListingCase SelectedListingCase = await _repository.GetListingCaseByIdAsync(listingCaseId);
+        return SelectedListingCase;
+    }
+
+    public async Task<ICollection<ListingCaseWithNavDto>> GetAllListingCasesAsync()
+    {
+        return await _repository.GetAllListingCasesAsync();
+    }
+    
+    public async Task<ICollection<ListingCaseWithNavDto>> GetAllDeletedListingCasesAsync()
+    {
+        return await _repository.GetAllDeletedListingCasesAsync();
     }
      
 

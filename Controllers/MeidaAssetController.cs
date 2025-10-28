@@ -36,15 +36,44 @@ public class MediaAssetController : ControllerBase
         ICollection<MediaAssetDto> response = await _mediaAssetService.UploadMediaAssetsBulkAsync(files, userId, listingCaseId, mediaType);
         return Ok(ApiResponse<ICollection<MediaAssetDto>>.Success(response, "Files uploaded successfully."));
     }
-    [HttpGet("listings/{id}/media")]
-    public async Task<IActionResult> GetMediaAssetsByListingCaseAsync([FromRoute] string id)
-    { 
-        ICollection<MediaAssetDto> response = await _mediaAssetService.GetMediaAssetsByListingCaseAsync(id);
-        return Ok(ApiResponse<ICollection<MediaAssetDto>>.Success(response, "Media assets retrieved successfully."));
-        
+    [HttpGet("listings/{listingId}/media")]
+    public async Task<IActionResult> GetMediaAssetsByListingCaseAsync([FromRoute] string listingId)
+    {
+        ICollection<MediaAsset> response = await _mediaAssetService.GetMediaAssetsByListingCaseAsync(listingId);
+        return Ok(ApiResponse<ICollection<MediaAsset>>.Success(response, "Media assets retrieved successfully."));
+
     }
 
+    [Authorize(Roles = "Admin, Photographer")]
+    [HttpDelete("delete/{mediaAssetId}")]
+    public async Task<IActionResult> DeleteMediaAssetAsync([FromRoute] string mediaAssetId)
+    {
 
-    // Other methods for bulk upload, retrieval, and deletion can be added here...
+        MediaAsset deletedMediaAsset = await _mediaAssetService.DeleteMediaAssetAsync(mediaAssetId);
+        return Ok(ApiResponse<MediaAsset>.Success(deletedMediaAsset, "Media asset deleted successfully."));
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("listings/{listingId}/selectedMedia")]
+
+    public async Task<IActionResult> SelectMediaAssetsForListingCase([FromRoute] string listingId, [FromBody] List<string> mediaAssetIds)
+    {
+
+        ICollection<MediaAsset> mediaAssets = await _mediaAssetService.SelectMediaAssetsByListingCase(listingId, mediaAssetIds);
+        return Ok(ApiResponse<ICollection<MediaAsset>>.Success(mediaAssets, "Media assets selected successfully."));
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("listings/{listingId}/selectedHero")]
+    public async Task<IActionResult> SelectHeroMediaAssetForListingCase([FromRoute] string listingId, [FromBody] string mediaAssetId)
+    {
+
+        MediaAsset mediaAsset = await _mediaAssetService.SelectHeroMediaAsset(listingId, mediaAssetId);
+        return Ok(ApiResponse<MediaAsset>.Success(mediaAsset, "Hero media asset selected successfully."));
+    }
+    
+    
+
+
 
 }

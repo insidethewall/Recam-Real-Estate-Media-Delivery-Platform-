@@ -100,7 +100,7 @@ public class AgentListingCaseValidator : IAgentListingCaseValidator
 
     public async Task<ListingCase> ValidateListingCaseAsync(string listingCaseId)
     {
-        var listingCase = await _context.ListingCases.FindAsync(listingCaseId);
+        ListingCase? listingCase = await _context.ListingCases.FindAsync(listingCaseId);
         if (listingCase == null)
            throw new Exception($"Listing case with ID {listingCaseId} not found.");
 

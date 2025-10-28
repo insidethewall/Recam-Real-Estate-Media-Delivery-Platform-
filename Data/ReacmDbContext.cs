@@ -150,7 +150,7 @@ public class ReacmDbContext : IdentityDbContext<User>
                 .HasDefaultValue(ListcaseStatus.Created);
 
             entity.Property(e => e.UserId)
-                .IsRequired();
+                .IsRequired(false);
 
             entity.HasOne(e => e.User)
                 .WithMany(u => u.ListingCases)
