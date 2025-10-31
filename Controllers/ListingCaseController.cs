@@ -213,6 +213,7 @@ public class ListingCaseController : ControllerBase
 
     }
 
+    [Authorize(Roles = "Admin, Photographer, Agent")]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetListingCaseById([FromRoute] string id)
     {
@@ -220,6 +221,19 @@ public class ListingCaseController : ControllerBase
        return Ok(ApiResponse<ListingCase>.Success(listingCase, "Listing case retrieved successfully."));
     }
 
+
+    [HttpGet("{id}/preview")]
+    public async Task<IActionResult> GetPreviewListingCaseById([FromRoute] string id)
+    {
+        ListingCase listingCase = await _service.GetListingCaseByIdAsync(id);
+        if (listingCase.ListcaseStatus != ListcaseStatus.Delivered)
+        { 
+            return BadRequest(ApiResponse<string>.Fail("Preview is only available for delivered listing cases.", "400"));
+        }
+       return Ok(ApiResponse<ListingCase>.Success(listingCase, "Listing case retrieved successfully."));
+    }
+
+    [Authorize(Roles = "Admin, Photographer")]
     [HttpGet]
     public async Task<ActionResult<ICollection<ListingCaseWithNavDto>>> GetAllListingCasesAsync()
     {
@@ -228,6 +242,7 @@ public class ListingCaseController : ControllerBase
 
     }
 
+    [Authorize(Roles = "Admin, Photographer")]
     [HttpGet("deleted")]
     public async Task<ActionResult<ICollection<ListingCaseWithNavDto>>> GetAllDeletedListingCasesAsync()
     { 
