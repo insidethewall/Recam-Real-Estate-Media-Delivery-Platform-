@@ -117,7 +117,7 @@ public class ListingCasesService : IListingCasesService
             _repository.SoftDeleteListingCase(listingCase);
             _repository.DeleteAgentListingCase(listingCase);
             _repository.RemoveListingCaseFromUser(listingCase);
-            _repository.SoftDeleteMeidaAssetsByListingCase(listingCase);
+            _repository.SoftDeleteMediaAssetsByListingCase(listingCase);
             await _generalRepository.SaveChangesAsync();
             await transaction.CommitAsync();
             return listingCase;

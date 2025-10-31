@@ -16,7 +16,7 @@ public interface IListingCasesRepository
     void DeleteAgentListingCase(ListingCase listingCase);
     void SoftDeleteListingCase(ListingCase listingCase);
 
-    void SoftDeleteMeidaAssetsByListingCase(ListingCase listingCase);
+    void SoftDeleteMediaAssetsByListingCase(ListingCase listingCase);
     void RemoveListingCaseFromUser(ListingCase listingCase);
     Task AddAgentListingCaseAsync(AgentListingCase agentListingCase);
     Task AddListingCaseAsync(ListingCase listingCase);

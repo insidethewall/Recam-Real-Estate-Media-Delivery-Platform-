@@ -114,7 +114,7 @@ public class ListingCasesRepository : IListingCasesRepository
 
 
   // TODO: DO I need to unbind the relationships of listing case when soft delete?
-    public void SoftDeleteMeidaAssetsByListingCase(ListingCase listingCase)
+    public void SoftDeleteMediaAssetsByListingCase(ListingCase listingCase)
     {
         ICollection<MediaAsset> mediaAssets = _dbContext.MediaAssets.Where(ma => ma.ListingCaseId == listingCase.Id).ToList();
         foreach (var mediaAsset in mediaAssets)
