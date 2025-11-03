@@ -61,6 +61,7 @@ public class ListingCasesRepository : IListingCasesRepository
             .Include(lc => lc.MediaAssets)
             .Include(lc => lc.AgentListingCases)
             .Include(lc => lc.CaseContacts)
+            .Include(lc=>lc.User)
             .FirstAsync(lc => lc.Id == listingCaseId && !lc.IsDeleted);
 
         return listingCase;
