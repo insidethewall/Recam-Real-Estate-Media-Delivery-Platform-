@@ -40,6 +40,14 @@ public class ListingCasesRepository : IListingCasesRepository
 
     }
 
+    public async Task<AgentListingCase> RemoveAgentListingCaseAsync(string agentId, string listingCaseId)
+    {
+        AgentListingCase agentListingCase = await _dbContext.AgentListingCases.Include(al=>al.Agent).FirstAsync(al => al.AgentId == agentId && al.ListingCaseId == listingCaseId);
+        _dbContext.AgentListingCases.Remove(agentListingCase);
+        return agentListingCase;
+       
+    }
+
     public async Task AddListingCaseAsync(ListingCase listingCase)
     {
         await _dbContext.ListingCases.AddAsync(listingCase);

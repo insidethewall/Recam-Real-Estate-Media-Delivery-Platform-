@@ -21,13 +21,12 @@ public class AgentListingCaseValidator : IAgentListingCaseValidator
       
     }
 
-    public async Task ValidateAgentAndListingCaseAsync(string agentId, string listingCaseId)
+    public async Task<bool> ValidateAgentAndListingCaseAsync(string agentId, string listingCaseId)
     {
-        var exists = await _context.AgentListingCases
+        bool exists = await _context.AgentListingCases
             .AnyAsync(alc => alc.AgentId == agentId && alc.ListingCaseId == listingCaseId);
-
-        if (exists)
-            throw new Exception($"Agent with ID {agentId} is already associated with listing case ID {listingCaseId}.");
+        return exists;
+       
        
     }
 
@@ -56,9 +55,12 @@ public class AgentListingCaseValidator : IAgentListingCaseValidator
     }
 
 
-    public async Task<User> ValidateUserByRoleAsync(string userId, Role role)
+public async Task<User> ValidateUserByRoleAsync(string userId, Role role)
 {
-    var user = await _userManager.FindByIdAsync(userId);
+    User? user = await _userManager.Users
+        .Include(u => u.Agent)
+        .Include(u => u.Photographer)
+        .FirstOrDefaultAsync(u => u.Id == userId);
     if (user == null)
         throw new NotFoundException($"User with ID {userId} not found.");
 

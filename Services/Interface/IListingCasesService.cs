@@ -11,6 +11,7 @@ public interface IListingCasesService
     Task<UpdateListingCaseDto> UpdateListingCaseAsync(UpdateListingCaseDto listingCaseDto, string listingCaseId);
     Task<ListingCaseStatusDto> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId);
     Task<List<AgentListingCase>> AddAgentsToListingCaseAsync(ICollection<string> agentIds, string listingCaseId);
+    Task<List<AgentListingCase>> RemoveAgentsFromListingCase(ICollection<string> agentIds, string listingCaseId);
     Task<ICollection<ListingCase>> GetAllListingCasesByAgentAsync(string currentUserId);
     Task<ICollection<ListingCase>> GetAllListingCasesByCreatorAsync(User currentUser);
     Task<ListingCase> DeleteListingCaseAsync(string listingCaseId);

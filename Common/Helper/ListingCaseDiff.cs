@@ -7,7 +7,7 @@ public static class ListingCaseDiff
     private const double DoubleEps = 1e-9;
     private static readonly decimal DecimalEps = 0.0000001m;
 
-    public static List<FieldChange> Diff(ListingCase before, ListingCase after, ILogger logger)
+    public static List<FieldChange> Diff(ListingCase before, ListingCase after)
     {
         var changes = new List<FieldChange>();
         void Add(string field, object? oldV, object? newV) => changes.Add(new FieldChange(field, ToInv(oldV), ToInv(newV)));
@@ -69,9 +69,9 @@ public static class ListingCaseDiff
         DiffInt(nameof(after.Bathrooms), after.Bathrooms, before.Bathrooms);
         DiffInt(nameof(after.Garages), after.Garages, before.Garages);
         DiffDouble(nameof(after.FloorArea), after.FloorArea, before.FloorArea);
-
         DiffEnum(nameof(after.PropertyType), after.PropertyType, before.PropertyType);
         DiffEnum(nameof(after.SaleCategory), after.SaleCategory, before.SaleCategory);
+        DiffEnum(nameof(after.ListcaseStatus), after.ListcaseStatus, before.ListcaseStatus);
 
         return changes;
 

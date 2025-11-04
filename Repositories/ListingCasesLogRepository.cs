@@ -29,7 +29,8 @@ public class ListingCasesLogRepository : IListingCasesLogRepository
         if (changer != null)
         {
             UserDetailDto changedBy = _generalRepository.MapDto<User, UserDetailDto>(changer);
-             changedBy.Role = await _validator.GetRole(changer);
+            changedBy.Role = await _validator.GetRole(changer);
+            listingCaseLog.ChangedBy = changedBy;
         }
         listingCaseLog.Changes = changes ?? new List<FieldChange>();
        

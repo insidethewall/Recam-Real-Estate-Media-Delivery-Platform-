@@ -48,7 +48,8 @@ public class ListingCasesService : IListingCasesService
 
         // 2) apply update and CAPTURE the return
         var after = _generalRepository.MapDtoUpdate(listingCaseDto, existing);
-        List<FieldChange> changes = ListingCaseDiff.Diff(before, after, _logger);
+        _logger.LogInformation("after==existing? {Eq}", ReferenceEquals(after, existing));
+        List<FieldChange> changes = ListingCaseDiff.Diff(before, after);
          ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(after,ChangeType.Updated, before.User ?? throw new Exception("creator of listingcase log cannot be null"), after.User, "",  changes);
         await _listingCasesLogRepository.AddLog(listingCaseLog);
         await _generalRepository.SaveChangesAsync();
@@ -60,6 +61,11 @@ public class ListingCasesService : IListingCasesService
     {
 
         ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
+        // add to listing case log 
+        var before = _generalRepository.MapDto<ListingCase, ListingCase>(listingCase);
+        List<FieldChange> changes = ListingCaseDiff.Diff(before, listingCase);
+        ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Updated, before.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "",  changes);
+        await _listingCasesLogRepository.AddLog(listingCaseLog);
 
         listingCase.ListcaseStatus = newStatus;
 
@@ -85,7 +91,9 @@ public class ListingCasesService : IListingCasesService
 
             foreach (string agentId in agentIds)
             {
-                await _validator.ValidateAgentAndListingCaseAsync(agentId, listingCaseId);
+                bool exist = await _validator.ValidateAgentAndListingCaseAsync(agentId, listingCaseId);
+                if (exist)
+                    throw new Exception($"Agent with ID {agentId} is already associated with listing case ID {listingCaseId}.");
                 User user = await _validator.ValidateUserByRoleAsync(agentId, Role.Agent);
                 Agent agent = user.Agent!;
                 AgentListingCase agentListingCase = new AgentListingCase
@@ -108,6 +116,35 @@ public class ListingCasesService : IListingCasesService
             await transaction.RollbackAsync();
             throw new Exception($"Error adding agents to listing case: {ex.Message}");
         }
+    }
+
+    public async Task<List<AgentListingCase>> RemoveAgentsFromListingCase(ICollection<string> agentIds, string listingCaseId)
+    { 
+        await using var transaction = await _generalRepository.BeginTransactionAsync();
+        try
+        {
+            ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
+            var agentListingCases = new List<AgentListingCase>();
+
+            foreach (string agentId in agentIds)
+            {
+                bool exist = await _validator.ValidateAgentAndListingCaseAsync(agentId, listingCaseId);
+                if(!exist)
+                    throw new Exception($"Agent with ID {agentId} does not associate with listing case ID {listingCaseId}.");
+                AgentListingCase deleted = await _repository.RemoveAgentListingCaseAsync(agentId, listingCaseId);
+                agentListingCases.Add(deleted);
+            }
+            await _generalRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return agentListingCases;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            throw new Exception($"Error adding agents to listing case: {ex.Message}");
+        }
+
+        
     }
 
     public async Task<ICollection<ListingCase>> GetAllListingCasesByAgentAsync(string currentUserId)
