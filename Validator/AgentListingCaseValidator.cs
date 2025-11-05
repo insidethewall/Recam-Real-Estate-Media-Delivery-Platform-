@@ -91,7 +91,7 @@ public async Task<User> ValidateUserByRoleAsync(string userId, Role role)
 
     public async Task<ListingCase> ValidateListingCaseAsync(string listingCaseId)
     {
-        ListingCase? listingCase = await _context.ListingCases.FindAsync(listingCaseId);
+        ListingCase? listingCase = await _context.ListingCases.Include(l=>l.User).FirstOrDefaultAsync(l=>l.Id == listingCaseId);
         if (listingCase == null)
            throw new Exception($"Listing case with ID {listingCaseId} not found.");
 

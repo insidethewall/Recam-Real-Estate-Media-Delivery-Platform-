@@ -51,8 +51,8 @@ public class ListingCasesService : IListingCasesService
         _logger.LogInformation("after==existing? {Eq}", ReferenceEquals(after, existing));
         List<FieldChange> changes = ListingCaseDiff.Diff(before, after);
          ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(after,ChangeType.Updated, before.User ?? throw new Exception("creator of listingcase log cannot be null"), after.User, "",  changes);
-        await _listingCasesLogRepository.AddLog(listingCaseLog);
         await _generalRepository.SaveChangesAsync();
+        await _listingCasesLogRepository.AddLog(listingCaseLog);
 
         return listingCaseDto;
     }
@@ -68,7 +68,6 @@ public class ListingCasesService : IListingCasesService
         await _listingCasesLogRepository.AddLog(listingCaseLog);
 
         listingCase.ListcaseStatus = newStatus;
-
         await _generalRepository.SaveChangesAsync();
         ListingCaseStatusDto statusDto = new ListingCaseStatusDto
         {
@@ -88,6 +87,7 @@ public class ListingCasesService : IListingCasesService
         {
             ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
             var agentListingCases = new List<AgentListingCase>();
+            List<FieldChange> fieldChanges = new List<FieldChange>();
 
             foreach (string agentId in agentIds)
             {
@@ -103,11 +103,15 @@ public class ListingCasesService : IListingCasesService
                     Agent = agent,
                     ListingCase = listingCase
                 };
+                FieldChange fieldChange = new FieldChange("AgentListingCase[+]", "null", agent.Id);
+                fieldChanges.Add(fieldChange);
                 await _repository.AddAgentListingCaseAsync(agentListingCase);
-                await _generalRepository.SaveChangesAsync();
                 agentListingCases.Add(agentListingCase);
 
             }
+            await _generalRepository.SaveChangesAsync();
+            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Updated, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "value only shows agents ID",  fieldChanges);
+            await _listingCasesLogRepository.AddLog(listingCaseLog);      
             await transaction.CommitAsync();
             return agentListingCases;
         }
@@ -121,6 +125,7 @@ public class ListingCasesService : IListingCasesService
     public async Task<List<AgentListingCase>> RemoveAgentsFromListingCase(ICollection<string> agentIds, string listingCaseId)
     { 
         await using var transaction = await _generalRepository.BeginTransactionAsync();
+        List<FieldChange> fieldChanges = new List<FieldChange>();
         try
         {
             ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
@@ -129,12 +134,16 @@ public class ListingCasesService : IListingCasesService
             foreach (string agentId in agentIds)
             {
                 bool exist = await _validator.ValidateAgentAndListingCaseAsync(agentId, listingCaseId);
-                if(!exist)
+                if (!exist)
                     throw new Exception($"Agent with ID {agentId} does not associate with listing case ID {listingCaseId}.");
                 AgentListingCase deleted = await _repository.RemoveAgentListingCaseAsync(agentId, listingCaseId);
                 agentListingCases.Add(deleted);
+                FieldChange fieldChange = new FieldChange("AgentListingCase[-]", agentId, "null");
+                fieldChanges.Add(fieldChange);
             }
             await _generalRepository.SaveChangesAsync();
+            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Updated, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "value only shows agents ID",  fieldChanges);
+            await _listingCasesLogRepository.AddLog(listingCaseLog); 
             await transaction.CommitAsync();
             return agentListingCases;
         }

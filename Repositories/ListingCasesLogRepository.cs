@@ -46,10 +46,14 @@ public class ListingCasesLogRepository : IListingCasesLogRepository
         await _mongoDbContext.ListingCaseLogs.InsertOneAsync(log);
 
     }
+    public async Task DeleteLog(ListingCaseLog log)
+    {
+        await _mongoDbContext.ListingCaseLogs.DeleteOneAsync(log.Id);
+    }
 
     public async Task<ICollection<ListingCaseLog>> GetAllListingCasesLog()
     {
-        return await _mongoDbContext.ListingCaseLogs.Find(_ => true).SortByDescending(doc=>doc.TimeStamp).ToListAsync();
+        return await _mongoDbContext.ListingCaseLogs.Find(_ => true).SortByDescending(doc => doc.TimeStamp).ToListAsync();
     }
 
     public async Task<ICollection<ListingCaseLog>> GetLogsByChangerId(string id)

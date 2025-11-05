@@ -2,6 +2,7 @@ using System.Globalization;
 using DnsClient.Protocol;
 using RecamSystemApi.Models;
 
+
 public static class ListingCaseDiff
 {
     private const double DoubleEps = 1e-9;
@@ -76,7 +77,9 @@ public static class ListingCaseDiff
         return changes;
 
     }
-    
+
+
+
     private static string? ToInv(object? v)
     {
         if (v is null) return null;
@@ -91,8 +94,8 @@ public static class ListingCaseDiff
         };
     }
 
-      
-    
 
-    
+
+
+
 }
