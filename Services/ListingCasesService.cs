@@ -48,7 +48,6 @@ public class ListingCasesService : IListingCasesService
 
         // 2) apply update and CAPTURE the return
         var after = _generalRepository.MapDtoUpdate(listingCaseDto, existing);
-        _logger.LogInformation("after==existing? {Eq}", ReferenceEquals(after, existing));
         List<FieldChange> changes = ListingCaseDiff.Diff(before, after);
          ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(after,ChangeType.Updated, before.User ?? throw new Exception("creator of listingcase log cannot be null"), after.User, "",  changes);
         await _generalRepository.SaveChangesAsync();
@@ -182,6 +181,7 @@ public class ListingCasesService : IListingCasesService
             _repository.RemoveListingCaseFromUser(listingCase);
             _repository.SoftDeleteMediaAssetsByListingCase(listingCase);
             await _generalRepository.SaveChangesAsync();
+            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Deleted, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "");
             await transaction.CommitAsync();
             return listingCase;
 
@@ -196,7 +196,7 @@ public class ListingCasesService : IListingCasesService
 
     public async Task<ListingCase> GetListingCaseByIdAsync(string listingCaseId)
     {
-        ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
+        await _validator.ValidateListingCaseAsync(listingCaseId);
         ListingCase SelectedListingCase = await _repository.GetListingCaseByIdAsync(listingCaseId);
         return SelectedListingCase;
     }

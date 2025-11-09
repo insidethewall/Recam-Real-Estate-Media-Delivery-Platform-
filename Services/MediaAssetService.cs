@@ -10,9 +10,10 @@ public class MediaAssetService : IMediaAssetService
     private readonly IGeneralRepository _generalRepository;
     private readonly IAgentListingCaseValidator _agentListingCaseValidator;
     private readonly UserManager<User> _userManager;
+     private readonly IListingCasesLogRepository _listingCasesLogRepository;
     private readonly ILogger<MediaAssetService> _logger;
 
-    public MediaAssetService(IGeneralRepository generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager, ILogger<MediaAssetService> logger)
+    public MediaAssetService(IGeneralRepository generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager, ILogger<MediaAssetService> logger, IListingCasesLogRepository listingCasesLogRepository)
     {
         _generalRepository = generalRepository;
         _azureBlobStorageService = azureBlobStorageService;
@@ -20,11 +21,13 @@ public class MediaAssetService : IMediaAssetService
         _agentListingCaseValidator = agentListingCaseValidator;
         _userManager = userManager;
         _logger = logger;
+        _listingCasesLogRepository = listingCasesLogRepository;
     }
 
     public async Task<ICollection<MediaAssetDto>> UploadMediaAssetsBulkAsync(ICollection<IFormFile> files, string userId, string listingCaseId, MediaType mediaType)
     {
         using var transaction = await _generalRepository.BeginTransactionAsync();
+        
         try
         {
             ICollection<MediaAssetDto> uploadedMediaAssets = new List<MediaAssetDto>();
@@ -40,6 +43,8 @@ public class MediaAssetService : IMediaAssetService
             IEnumerable<(IFormFile file, string mediaType)> fileList = files.Select(f => (f, mediaType.ToString()));
 
             IDictionary<string, string> blobUrls = await _azureBlobStorageService.UploadFileBulkAsync(fileList);
+            List<FieldChange> fieldChanges = new List<FieldChange>();
+
             foreach (var (file, url) in blobUrls)
             {
                 //GUID_filename_mediatype
@@ -65,8 +70,13 @@ public class MediaAssetService : IMediaAssetService
                 await _mediaAssetRepository.AddMediaAssetAsync(mediaAsset);
 
                 uploadedMediaAssets.Add(mediaAssetDto);
+                FieldChange fieldChange = new FieldChange("MediaAsset[+]", "null", mediaAsset.Id);
+                fieldChanges.Add(fieldChange);
             }
             await _generalRepository.SaveChangesAsync();
+
+            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase, ChangeType.Updated, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User,"",fieldChanges);
+            await _listingCasesLogRepository.AddLog(listingCaseLog);
             await transaction.CommitAsync();
             return uploadedMediaAssets;
 
@@ -89,32 +99,68 @@ public class MediaAssetService : IMediaAssetService
 
     public async Task<MediaAsset> DeleteMediaAssetAsync(string mediaAssetId)
     {
-        using var transaction = await _generalRepository.BeginTransactionAsync();
-        try
+ 
+        var asset = await _mediaAssetRepository.GetMediaAssetByIdAsync(mediaAssetId);
+    if (asset is null)
+        throw new NotFoundException($"Media asset with ID {mediaAssetId} not found.");
+    if (string.IsNullOrWhiteSpace(asset.FilePath))
+        throw new InvalidOperationException($"Media asset {mediaAssetId} has no FilePath.");
+
+    // 1) DB FIRST: mark as soft-deleted and pending blob delete, then commit
+    await using (var tx = await _generalRepository.BeginTransactionAsync())
+    {
+        asset.IsDeleted = true;            // hide from UI/business logic
+        asset.BlobDeleted = false;         // not yet deleted in storage
+        asset.BlobDeletePending = true;    // <-- add this bool column
+        var fieldChanges = new List<FieldChange>
         {
-            MediaAsset mediaAsset = await _mediaAssetRepository.GetMediaAssetByIdAsync(mediaAssetId);
-            if (mediaAsset == null)
-                throw new NotFoundException($"Media asset with ID {mediaAssetId} not found.");
+            new FieldChange(
+                "MediaAsset[-]", 
+                OldValue: asset.Id,
+                NewValue: "null"
+            )
+        };
 
+            // Load listing case for the log
+        var listingCase = asset.ListingCase;
 
-            _mediaAssetRepository.DeleteMediaAssetAsync(mediaAsset);
-            bool isDeleted = await _azureBlobStorageService.DeleteFileAsync(mediaAsset.FilePath);
-            if (!isDeleted)
-            {
-                throw new Exception($"Failed to delete the file from Azure Blob Storage at {mediaAsset.FilePath}.");
-            }
-            await _generalRepository.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return mediaAsset;
+        var log = await _listingCasesLogRepository.CreateListingCaseLog(
+            listingCase,
+            ChangeType.Updated, 
+            listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"),
+            listingCase.User,
+            "Blob deleted; media asset fully removed.",
+            fieldChanges
+        );
 
-        }
-        catch (Exception ex)
-        {
-            transaction.Rollback();
-            throw new Exception($"Error deleting media asset: {ex.Message}");
-        }
-
+        await _listingCasesLogRepository.AddLog(log);
+        await _generalRepository.SaveChangesAsync();
+        await tx.CommitAsync();
     }
+
+    // 2) BLOB SECOND: try to delete the blob outside the DB transaction
+    try
+    {
+        var deleted = await _azureBlobStorageService.DeleteFileAsync(asset.FilePath);
+        if (!deleted)
+            throw new InvalidOperationException($"Blob delete returned false for path {asset.FilePath}.");
+
+        // 3) Mark success in DB
+        asset.BlobDeletePending = false;
+        asset.BlobDeleted = true;
+        _mediaAssetRepository.DeleteMediaAssetAsync(asset);
+        await _generalRepository.SaveChangesAsync();
+
+        return asset;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Blob deletion failed for asset {AssetId} (path: {Path})", asset.Id, asset.FilePath);
+        return asset;
+    }
+
+
+        }
 
     public async Task<ICollection<MediaAsset>> SelectMediaAssetsByListingCase(string listingCaseId, List<string> mediaAssetIds)
     {
