@@ -84,6 +84,7 @@ public class Program
         builder.Services.AddScoped<IMediaAssetRepository, MediaAssetRepository>();
         builder.Services.AddScoped<IGeneralRepository, GeneralRepository>();
         builder.Services.AddScoped<IListingCasesLogRepository, ListingCasesLogRepository>();
+        builder.Services.AddScoped<IUserLogRepository,UserLogRepository>();
         //service
         builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
         builder.Services.AddScoped<IAgentListingCaseValidator, AgentListingCaseValidator>();
