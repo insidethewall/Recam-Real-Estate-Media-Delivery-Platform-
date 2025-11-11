@@ -30,7 +30,7 @@ public class MediaAssetRepository : IMediaAssetRepository
 
     public async Task<MediaAsset> GetMediaAssetByIdAsync(string mediaAssetId)
     {
-        MediaAsset? mediaAsset = await _dbContext.MediaAssets
+        MediaAsset? mediaAsset = await _dbContext.MediaAssets.Include(ma=>ma.ListingCase).ThenInclude(l=>l.User)
             .FirstOrDefaultAsync(ma => ma.Id == mediaAssetId);
         if (mediaAsset == null)
             throw new NotFoundException($"Media asset with ID {mediaAssetId} not found.");

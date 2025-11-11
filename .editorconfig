@@ -1,0 +1,8 @@
+[*.cs]
+
+# CS8601: Possible null reference assignment.
+dotnet_diagnostic.CS8601.severity = silent
+[*.cs]
+
+# CS8601: Possible null reference assignment.
+dotnet_diagnostic.CS8601.severity = warning

@@ -31,6 +31,17 @@ public class Program
                     options.JsonSerializerOptions.WriteIndented = true;
                 });
 
+        builder.Services.Configure<MongoDbSettings>(
+            options=>
+            {
+                options.ConnectionStrings = builder.Configuration["ConnectionStrings:MongoDb"] 
+                    ?? throw new InvalidOperationException("MongoDB connection string is not configured.");
+                options.DatabaseName = builder.Configuration["DatabaseSettings:DatabaseName"] 
+                    ?? throw new InvalidOperationException("MongoDB database name is not configured.");
+            }
+        );
+        builder.Services.AddSingleton<MongoDbContext>();
+
         builder.Services.AddDbContext<ReacmDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("ReacmDb")));
        
@@ -72,6 +83,8 @@ public class Program
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IMediaAssetRepository, MediaAssetRepository>();
         builder.Services.AddScoped<IGeneralRepository, GeneralRepository>();
+        builder.Services.AddScoped<IListingCasesLogRepository, ListingCasesLogRepository>();
+        builder.Services.AddScoped<IUserLogRepository,UserLogRepository>();
         //service
         builder.Services.AddScoped<IListingCasesService, ListingCasesService>();
         builder.Services.AddScoped<IAgentListingCaseValidator, AgentListingCaseValidator>();

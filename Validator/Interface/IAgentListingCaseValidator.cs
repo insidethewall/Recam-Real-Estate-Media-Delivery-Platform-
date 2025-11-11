@@ -4,7 +4,8 @@ using RecamSystemApi.Utility;
 
 public interface IAgentListingCaseValidator
 {
-    Task ValidateAgentAndListingCaseAsync(string agentId, string listingCaseId);
+    Task<Role> GetRole(User user);
+    Task<bool> ValidateAgentAndListingCaseAsync(string agentId, string listingCaseId);
     Task<User> ValidateUserByRoleAsync( string userId, Role role);
     Task<ListingCase> ValidateListingCaseAsync(string listingCaseId);
 }

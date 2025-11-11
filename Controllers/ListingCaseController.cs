@@ -114,7 +114,7 @@ public class ListingCaseController : ControllerBase
 
     }
 
-    [Authorize(Roles = "Photographer")]
+    [Authorize(Roles = "Photographer, Admin")]
     [HttpPost("addAgentsToListingCase/{listingCaseId}")]
     public async Task<IActionResult> AddAgentsToListingCase([FromBody] ICollection<string> agentIds, [FromRoute] string listingCaseId)
     {
@@ -135,6 +135,30 @@ public class ListingCaseController : ControllerBase
         catch (System.Exception ex)
         {
             return BadRequest(ApiResponse<string>.Fail($"Error adding agents to listing case: {ex.Message}", "500"));
+        }
+    }
+
+    [Authorize(Roles = "Photographer, Admin")]
+    [HttpPost("DeleteAgentsFromListingCase/{listingCaseId}")]
+    public async Task<IActionResult> DeleteAgentsToListingCase([FromBody] ICollection<string> agentIds, [FromRoute] string listingCaseId)
+    {
+        if (agentIds == null || !agentIds.Any())
+        {
+            return BadRequest(ApiResponse<string>.Fail("Agent IDs cannot be null or empty.", "400"));
+        }
+        if (string.IsNullOrEmpty(listingCaseId))
+        {
+            return BadRequest(ApiResponse<string>.Fail("Listing case ID cannot be null or empty."));
+        }
+        try
+        {
+            List<AgentListingCase> response = await _service.RemoveAgentsFromListingCase(agentIds, listingCaseId);
+            return Ok(ApiResponse<List<AgentListingCase>>.Success(response, "Agents deleted from listing case successfully."));
+
+        }
+        catch (System.Exception ex)
+        {
+            return BadRequest(ApiResponse<string>.Fail($"Error deleting agents to listing case: {ex.Message}", "500"));
         }
     }
 

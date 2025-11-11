@@ -15,6 +15,8 @@ namespace RecamSystemApi.Models
         public bool IsDisplaySelected { get; set; } = false;
 
         public bool IsDeleted { get; set; } = false;
+        public bool BlobDeleted { get; set; } = false;
+        public bool BlobDeletePending { get; set; } = false;
 
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 

@@ -16,6 +16,7 @@ public class AuthService : IAuthService
     private readonly IAuthRepository _authRepository;
     private readonly IGeneralRepository _generalRepository;
     private readonly IAzureBlobStorageService _blobStorageService;
+    private readonly IUserLogRepository _userLogRepository;
 
 
 
@@ -23,7 +24,7 @@ public class AuthService : IAuthService
     /// CTOR
     /// </summary>
     /// <param name="userManager"></param>
-    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService)
+    public AuthService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IAuthRepository authRepository, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService, IUserLogRepository userLogRepository)
     {
         _context = context;
         _userManager = userManager;
@@ -32,6 +33,7 @@ public class AuthService : IAuthService
         _authRepository = authRepository;
         _generalRepository = generalRepository;
         _blobStorageService = blobStorageService;
+        _userLogRepository = userLogRepository;
     }
 
     // only for Photographer roles
@@ -61,7 +63,6 @@ public class AuthService : IAuthService
                  avatarUrl =  await _blobStorageService.UploadFileAsync(registerRequest.Avatar, "Agent-avatars");
             }
 
-            
             await _userManager.AddToRoleAsync(user, roleName);
             Photographer photographer = _generalRepository.MapDto<IUserProfileDto, Photographer>(registerRequest);
             photographer.Id = user.Id;
@@ -69,6 +70,8 @@ public class AuthService : IAuthService
             photographer.AvatarUrl = avatarUrl;
             await _authRepository.CreatePhotographerAsync(photographer);
             await _generalRepository.SaveChangesAsync();
+            UserLog userLog = _userLogRepository.CreateUserLog(user, UserAction.Register, user, "Register a user");
+            await _userLogRepository.AddLog(userLog); 
             await transaction.CommitAsync();
             string token = await _jwtTokenService.GenerateTokenAsync(user);
             return token;
@@ -93,6 +96,8 @@ public class AuthService : IAuthService
         bool isPasswordValid = await _userManager.CheckPasswordAsync(user, loginRequest.Password);
         if (!isPasswordValid)
             throw new System.Exception("Invalid password.");
+        UserLog userLog = _userLogRepository.CreateUserLog(user, UserAction.Login, user, "User Login");
+        await _userLogRepository.AddLog(userLog);
 
         return await _jwtTokenService.GenerateTokenAsync(user);
     }    

@@ -20,8 +20,9 @@ public class UserService : IUserService
     private readonly ILogger<UserService> _logger;
     private readonly IGeneralRepository _generalRepository;
     private readonly IAzureBlobStorageService _blobStorageService;
+    private readonly IUserLogRepository _userLogRepository;
 
-    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService)
+    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService, IUserLogRepository userLogRepository)
     {
         _context = context;
         _userManager = userManager;
@@ -32,6 +33,7 @@ public class UserService : IUserService
         _logger = logger;
         _generalRepository = generalRepository;
         _blobStorageService = blobStorageService;
+        _userLogRepository = userLogRepository;
     }
 
 
@@ -39,7 +41,9 @@ public class UserService : IUserService
     {
         string password = PasswordGenerator.GenerateStrongPassword();
         _logger.LogInformation($"Generated password for new agent: {password}");
-
+        User? currentUser = await _userManager.FindByIdAsync(currentUserId);
+          if (currentUser == null)
+            throw new System.Exception("Current user not found.");
         User user = new User
         {
             Email = registerRequest.Email,
@@ -82,6 +86,9 @@ public class UserService : IUserService
                 "Welcome to Recam System",
                 $"Your account has been created successfully. Your password is: {password}. Please change it after your first login."
             );
+
+            UserLog userLog = _userLogRepository.CreateUserLog(currentUser, UserAction.CreateAgent, user, "create agent");
+            await _userLogRepository.AddLog(userLog);
             return token;
         }
         catch (System.Exception ex)
@@ -141,7 +148,7 @@ public class UserService : IUserService
             {
 
                 Photographer photographer = _userRepository.DeletePhotographer(targetUser);
-                if (!string.IsNullOrEmpty(photographer.AvatarUrl))
+                if (!string.IsNullOrEmpty(photographer.AvatarUrl) )
                     await _blobStorageService.DeleteFileAsync(photographer.AvatarUrl);
                 userDeletionDto.photographer = photographer;
             }
@@ -154,6 +161,8 @@ public class UserService : IUserService
             }
             await _generalRepository.SaveChangesAsync();
             await transaction.CommitAsync();
+            UserLog userLog = _userLogRepository.CreateUserLog(currentUser, UserAction.DeleteUser, targetUser, "Delete user");
+            await _userLogRepository.AddLog(userLog);
             return userDeletionDto;
 
         }

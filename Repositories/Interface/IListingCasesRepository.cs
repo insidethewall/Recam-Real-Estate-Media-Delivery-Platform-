@@ -19,6 +19,7 @@ public interface IListingCasesRepository
     void SoftDeleteMediaAssetsByListingCase(ListingCase listingCase);
     void RemoveListingCaseFromUser(ListingCase listingCase);
     Task AddAgentListingCaseAsync(AgentListingCase agentListingCase);
+    Task<AgentListingCase> RemoveAgentListingCaseAsync(string agentId, string listingCaseId);
     Task AddListingCaseAsync(ListingCase listingCase);
 }
 

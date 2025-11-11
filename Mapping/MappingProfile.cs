@@ -21,7 +21,7 @@ public class MappingProfile : Profile
     IMappingExpression<IUserProfileDto, Photographer> PhotographerMapper = CreateMap<IUserProfileDto, Photographer>()
     .ForMember(dest => dest.PhotographerFirstName, opt => opt.MapFrom(src => src.FirstName))
     .ForMember(dest => dest.PhotographerLastName, opt => opt.MapFrom(src => src.LastName));
-    
+
 
     IMappingExpression<Agent, RegisterRequestDto> AgentDtoMapper = CreateMap<Agent, RegisterRequestDto>();
 
@@ -39,13 +39,20 @@ public class MappingProfile : Profile
         .ForMember(dest => dest.CaseContacts, opt => opt.Ignore())
         .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(_ => false));
 
-    IMappingExpression<ListingCase, ListingCaseWithNavDto> ListingCaseNavDtoMapper =  CreateMap<ListingCase, ListingCaseWithNavDto>()
+    IMappingExpression<ListingCase, ListingCaseWithNavDto> ListingCaseNavDtoMapper = CreateMap<ListingCase, ListingCaseWithNavDto>()
             .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
             .ForMember(dest => dest.AgentListingCases, opt => opt.MapFrom(src => src.AgentListingCases))
             .ForMember(dest => dest.MediaAssets, opt => opt.MapFrom(src => src.MediaAssets))
             .ForMember(dest => dest.CaseContacts, opt => opt.MapFrom(src => src.CaseContacts));
+
+
+      // for deep clone
+      CreateMap<ListingCase, ListingCase>();
+         
+
+
     CreateMap<User, RegisterRequestDto>();      // maps ListingCase.User → RegisterRequestDto
-  
+
 
     IMappingExpression<MediaAssetDto, MediaAsset> MediaAssetDtoMapper = CreateMap<MediaAssetDto, MediaAsset>()
     .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid().ToString()))
@@ -53,6 +60,14 @@ public class MappingProfile : Profile
 
 
     IMappingExpression<MediaAsset, MediaAssetDto> MediaAssetMapper = CreateMap<MediaAsset, MediaAssetDto>();
+
+    IMappingExpression<ListingCase, ListingCaseLog> ListingCaseMapper = CreateMap<ListingCase, ListingCaseLog>()
+    .ForMember(dest=>dest.Id, opt => opt.Ignore())
+    .ForMember(dest => dest.ListingCaseId, opt => opt.MapFrom(src => src.Id));
+
+    IMappingExpression<User, UserDetailDto> UserDetailDtoMapper = CreateMap<User, UserDetailDto>()
+    .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id))
+    .ForMember(dest=>dest.UserName, opt=> opt.MapFrom(src=> src.UserName));
   
   }
         
