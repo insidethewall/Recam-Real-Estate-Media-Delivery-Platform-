@@ -7,5 +7,6 @@ public interface IUserLogRepository
     Task AddLog(UserLog log);
     Task DeleteLog(UserLog log);
     Task<ICollection<UserLog>> GetAllUsersLog();
+    Task<ICollection<UserLog>> GetLogsByUserId(string id);
     
 }

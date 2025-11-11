@@ -22,7 +22,7 @@ namespace RecamSystemApi.Services
         private void ValidateFile(IFormFile file)
         {
             var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/gif", "application/pdf", "audio/mpeg" };
-            const long maxFileSize = 100 * 1024 * 1024 ;
+            const long maxFileSize = 100 * 1024 * 1024;
 
             if (!allowedContentTypes.Contains(file.ContentType.ToLower()))
                 throw new InvalidOperationException($"File type '{file.ContentType}' is not allowed.");

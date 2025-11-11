@@ -4,7 +4,7 @@ using RecamSystemApi.Models;
 
 public class UserLogRepository : IUserLogRepository
 {
-       private readonly MongoDbContext _mongoDbContext;
+    private readonly MongoDbContext _mongoDbContext;
     private readonly IGeneralRepository _generalRepository;
 
     private readonly IAgentListingCaseValidator _validator;
@@ -37,16 +37,23 @@ public class UserLogRepository : IUserLogRepository
 
     public async Task AddLog(UserLog log)
     {
-         await _mongoDbContext.UserLogs.InsertOneAsync(log);
+        await _mongoDbContext.UserLogs.InsertOneAsync(log);
     }
 
     public async Task DeleteLog(UserLog log)
     {
-         await _mongoDbContext.UserLogs.DeleteOneAsync(log.Id);
+        await _mongoDbContext.UserLogs.DeleteOneAsync(log.Id);
     }
 
     public async Task<ICollection<UserLog>> GetAllUsersLog()
     {
         return await _mongoDbContext.UserLogs.Find(_ => true).SortByDescending(doc => doc.TimeStamp).ToListAsync();
+    }
+
+    public async Task<ICollection<UserLog>> GetLogsByUserId(string id)
+    { 
+        return await _mongoDbContext.UserLogs.Find(ul=>ul.UserDetail.UserId == id).SortByDescending(doc => doc.TimeStamp)
+            .ToListAsync();
+        
     }
 }
