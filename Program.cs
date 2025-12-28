@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RecamSystemApi.Data;
 using RecamSystemApi.Exception;
+using RecamSystemApi.Filters;
 using RecamSystemApi.Helper;
 using RecamSystemApi.Models;
 using RecamSystemApi.Services;
@@ -24,9 +25,14 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         builder.Logging.ClearProviders();
         builder.Logging.AddConsole();
-        builder.Services.AddControllers()
+        builder.Services.AddControllers(options =>
+                {
+                    // Register global action filters for logging
+                    options.Filters.AddService<UserActionLoggingFilter>();
+                    options.Filters.AddService<ListingCaseActionLoggingFilter>();
+                })
                 .AddJsonOptions(options=>
-                { 
+                {
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     options.JsonSerializerOptions.WriteIndented = true;
                 });
@@ -93,6 +99,11 @@ public class Program
         builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
         builder.Services.AddScoped<IMediaAssetService, MediaAssetService>();
         builder.Services.AddScoped<IAzureBlobStorageService, AzureBlobStorageService>();
+
+        // Logging middleware services
+        builder.Services.AddScoped<LoggingContextService>();
+        builder.Services.AddScoped<UserActionLoggingFilter>();
+        builder.Services.AddScoped<ListingCaseActionLoggingFilter>();
 
         builder.Services.AddAutoMapper(typeof(Program));
         builder.Services.AddSingleton<GlobalExceptionHandler>();
