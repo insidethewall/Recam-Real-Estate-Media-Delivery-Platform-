@@ -10,17 +10,16 @@ public class ListingCasesService : IListingCasesService
     private readonly IListingCasesRepository _repository;
     private readonly UserManager<User> _userManager;
     private readonly IAgentListingCaseValidator _validator;
-    private readonly IListingCasesLogRepository _listingCasesLogRepository;
-
+    private readonly LoggingContextService _loggingContext;
     private readonly ILogger<ListingCasesService> _logger;
 
-    public ListingCasesService(IGeneralRepository generalRepository, IListingCasesRepository repository, UserManager<User> userManager, IAgentListingCaseValidator validator, IListingCasesLogRepository listingCasesLogRepository, ILogger<ListingCasesService> logger)
+    public ListingCasesService(IGeneralRepository generalRepository, IListingCasesRepository repository, UserManager<User> userManager, IAgentListingCaseValidator validator, LoggingContextService loggingContext, ILogger<ListingCasesService> logger)
     {
         _generalRepository = generalRepository;
         _repository = repository;
         _userManager = userManager;
         _validator = validator;
-        _listingCasesLogRepository = listingCasesLogRepository;
+        _loggingContext = loggingContext;
         _logger = logger;
 
     }
@@ -31,10 +30,13 @@ public class ListingCasesService : IListingCasesService
     {
         ListingCase listingCase = _generalRepository.MapDto<ListingCaseDto, ListingCase>(listingCaseDto);
         listingCase.UserId = currentUser.Id;
-        ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Created, currentUser);
         await _repository.AddListingCaseAsync(listingCase);
-        await _listingCasesLogRepository.AddLog(listingCaseLog);
         await _generalRepository.SaveChangesAsync();
+
+        // Set logging context - filter will handle persisting the log
+        _loggingContext.SetAfterListingCase(listingCase);
+        _loggingContext.SetCurrentUser(currentUser);
+
         return listingCaseDto;
     }
 
@@ -49,25 +51,35 @@ public class ListingCasesService : IListingCasesService
         // 2) apply update and CAPTURE the return
         var after = _generalRepository.MapDtoUpdate(listingCaseDto, existing);
         List<FieldChange> changes = ListingCaseDiff.Diff(before, after);
-         ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(after,ChangeType.Updated, before.User ?? throw new Exception("creator of listingcase log cannot be null"), after.User, "",  changes);
         await _generalRepository.SaveChangesAsync();
-        await _listingCasesLogRepository.AddLog(listingCaseLog);
+
+        // Set logging context - filter will handle persisting the log
+        _loggingContext.SetBeforeListingCase(before);
+        _loggingContext.SetAfterListingCase(after);
+        _loggingContext.SetCurrentUser(before.User ?? throw new Exception("creator of listingcase log cannot be null"));
+        _loggingContext.SetFieldChanges(changes);
 
         return listingCaseDto;
     }
 
     public async Task<ListingCaseStatusDto> ChangeListingCaseStatusAsync(ListcaseStatus newStatus, string listingCaseId)
     {
-
         ListingCase listingCase = await _validator.ValidateListingCaseAsync(listingCaseId);
-        // add to listing case log 
-        var before = _generalRepository.MapDto<ListingCase, ListingCase>(listingCase);
-        List<FieldChange> changes = ListingCaseDiff.Diff(before, listingCase);
-        ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Updated, before.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "",  changes);
-        await _listingCasesLogRepository.AddLog(listingCaseLog);
 
+        // Snapshot BEFORE
+        var before = _generalRepository.MapDto<ListingCase, ListingCase>(listingCase);
+
+        // Apply status change
         listingCase.ListcaseStatus = newStatus;
+        List<FieldChange> changes = ListingCaseDiff.Diff(before, listingCase);
         await _generalRepository.SaveChangesAsync();
+
+        // Set logging context - filter will handle persisting the log
+        _loggingContext.SetBeforeListingCase(before);
+        _loggingContext.SetAfterListingCase(listingCase);
+        _loggingContext.SetCurrentUser(before.User ?? throw new Exception("creator of listing case log cannot be null"));
+        _loggingContext.SetFieldChanges(changes);
+
         ListingCaseStatusDto statusDto = new ListingCaseStatusDto
         {
             Id = listingCase.Id,
@@ -109,8 +121,12 @@ public class ListingCasesService : IListingCasesService
 
             }
             await _generalRepository.SaveChangesAsync();
-            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Updated, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "value only shows agents ID",  fieldChanges);
-            await _listingCasesLogRepository.AddLog(listingCaseLog);      
+
+            // Set logging context - filter will handle persisting the log
+            _loggingContext.SetAfterListingCase(listingCase);
+            _loggingContext.SetCurrentUser(listingCase.User ?? throw new Exception("creator of listing case log cannot be null"));
+            _loggingContext.SetFieldChanges(fieldChanges);
+
             await transaction.CommitAsync();
             return agentListingCases;
         }
@@ -141,8 +157,12 @@ public class ListingCasesService : IListingCasesService
                 fieldChanges.Add(fieldChange);
             }
             await _generalRepository.SaveChangesAsync();
-            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Updated, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "value only shows agents ID",  fieldChanges);
-            await _listingCasesLogRepository.AddLog(listingCaseLog); 
+
+            // Set logging context - filter will handle persisting the log
+            _loggingContext.SetAfterListingCase(listingCase);
+            _loggingContext.SetCurrentUser(listingCase.User ?? throw new Exception("creator of listing case log cannot be null"));
+            _loggingContext.SetFieldChanges(fieldChanges);
+
             await transaction.CommitAsync();
             return agentListingCases;
         }
@@ -181,7 +201,11 @@ public class ListingCasesService : IListingCasesService
             _repository.RemoveListingCaseFromUser(listingCase);
             _repository.SoftDeleteMediaAssetsByListingCase(listingCase);
             await _generalRepository.SaveChangesAsync();
-            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase,ChangeType.Deleted, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User, "");
+
+            // Set logging context - filter will handle persisting the log
+            _loggingContext.SetBeforeListingCase(listingCase);
+            _loggingContext.SetCurrentUser(listingCase.User ?? throw new Exception("creator of listing case log cannot be null"));
+
             await transaction.CommitAsync();
             return listingCase;
 
