@@ -6,22 +6,21 @@ public class MediaAssetService : IMediaAssetService
 {
     private readonly IAzureBlobStorageService _azureBlobStorageService;
     private readonly IMediaAssetRepository _mediaAssetRepository;
-
     private readonly IGeneralRepository _generalRepository;
     private readonly IAgentListingCaseValidator _agentListingCaseValidator;
     private readonly UserManager<User> _userManager;
-     private readonly IListingCasesLogRepository _listingCasesLogRepository;
+    private readonly LoggingContextService _loggingContext;
     private readonly ILogger<MediaAssetService> _logger;
 
-    public MediaAssetService(IGeneralRepository generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager, ILogger<MediaAssetService> logger, IListingCasesLogRepository listingCasesLogRepository)
+    public MediaAssetService(IGeneralRepository generalRepository, IAzureBlobStorageService azureBlobStorageService, IMediaAssetRepository mediaAssetRepository, IAgentListingCaseValidator agentListingCaseValidator, UserManager<User> userManager, LoggingContextService loggingContext, ILogger<MediaAssetService> logger)
     {
         _generalRepository = generalRepository;
         _azureBlobStorageService = azureBlobStorageService;
         _mediaAssetRepository = mediaAssetRepository;
         _agentListingCaseValidator = agentListingCaseValidator;
         _userManager = userManager;
+        _loggingContext = loggingContext;
         _logger = logger;
-        _listingCasesLogRepository = listingCasesLogRepository;
     }
 
     public async Task<ICollection<MediaAssetDto>> UploadMediaAssetsBulkAsync(ICollection<IFormFile> files, string userId, string listingCaseId, MediaType mediaType)
@@ -75,8 +74,11 @@ public class MediaAssetService : IMediaAssetService
             }
             await _generalRepository.SaveChangesAsync();
 
-            ListingCaseLog listingCaseLog = await _listingCasesLogRepository.CreateListingCaseLog(listingCase, ChangeType.Updated, listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"), listingCase.User,"",fieldChanges);
-            await _listingCasesLogRepository.AddLog(listingCaseLog);
+            // Set logging context - filter will handle persisting the log
+            _loggingContext.SetAfterListingCase(listingCase);
+            _loggingContext.SetCurrentUser(listingCase.User ?? throw new Exception("creator of listing case log cannot be null"));
+            _loggingContext.SetFieldChanges(fieldChanges);
+
             await transaction.CommitAsync();
             return uploadedMediaAssets;
 
@@ -124,16 +126,11 @@ public class MediaAssetService : IMediaAssetService
             // Load listing case for the log
         var listingCase = asset.ListingCase;
 
-        var log = await _listingCasesLogRepository.CreateListingCaseLog(
-            listingCase,
-            ChangeType.Updated, 
-            listingCase.User ?? throw new Exception("creator of listingcase log cannot be null"),
-            listingCase.User,
-            "Blob deleted; media asset fully removed.",
-            fieldChanges
-        );
+        // Set logging context - filter will handle persisting the log
+        _loggingContext.SetAfterListingCase(listingCase);
+        _loggingContext.SetCurrentUser(listingCase.User ?? throw new Exception("creator of listing case log cannot be null"));
+        _loggingContext.SetFieldChanges(fieldChanges);
 
-        await _listingCasesLogRepository.AddLog(log);
         await _generalRepository.SaveChangesAsync();
         await tx.CommitAsync();
     }

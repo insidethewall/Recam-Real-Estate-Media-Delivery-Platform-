@@ -20,9 +20,9 @@ public class UserService : IUserService
     private readonly ILogger<UserService> _logger;
     private readonly IGeneralRepository _generalRepository;
     private readonly IAzureBlobStorageService _blobStorageService;
-    private readonly IUserLogRepository _userLogRepository;
+    private readonly LoggingContextService _loggingContext;
 
-    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService, IUserLogRepository userLogRepository)
+    public UserService(ReacmDbContext context, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IJwtTokenService jwtTokenService, IUserRepository userRepository, IEmailSender emailSender, ILogger<UserService> logger, IGeneralRepository generalRepository, IAzureBlobStorageService blobStorageService, LoggingContextService loggingContext)
     {
         _context = context;
         _userManager = userManager;
@@ -33,7 +33,7 @@ public class UserService : IUserService
         _logger = logger;
         _generalRepository = generalRepository;
         _blobStorageService = blobStorageService;
-        _userLogRepository = userLogRepository;
+        _loggingContext = loggingContext;
     }
 
 
@@ -86,9 +86,9 @@ public class UserService : IUserService
                 "Welcome to Recam System",
                 $"Your account has been created successfully. Your password is: {password}. Please change it after your first login."
             );
-
-            UserLog userLog = _userLogRepository.CreateUserLog(currentUser, UserAction.CreateAgent, user, "create agent");
-            await _userLogRepository.AddLog(userLog);
+            // Set logging context - filter will handle persisting the log
+            _loggingContext.SetCurrentUser(currentUser);
+            _loggingContext.SetTargetUser(user);
             return token;
         }
         catch (System.Exception ex)
@@ -103,6 +103,9 @@ public class UserService : IUserService
     {
         AgentPhotographer agentPhotographer = await _userRepository.CreateAgentPhotographerAsync(currentUser, agentUser);
         await _generalRepository.SaveChangesAsync();
+        // Set logging context - filter will handle persisting the log
+        _loggingContext.SetCurrentUser(currentUser);
+        _loggingContext.SetTargetUser(agentUser);
         return agentPhotographer;
     }
 
@@ -161,8 +164,10 @@ public class UserService : IUserService
             }
             await _generalRepository.SaveChangesAsync();
             await transaction.CommitAsync();
-            UserLog userLog = _userLogRepository.CreateUserLog(currentUser, UserAction.DeleteUser, targetUser, "Delete user");
-            await _userLogRepository.AddLog(userLog);
+            // Set logging context - filter will handle persisting the log
+            _loggingContext.SetCurrentUser(currentUser);
+            _loggingContext.SetTargetUser(targetUser);
+
             return userDeletionDto;
 
         }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using RecamSystemApi.Attributes;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Enums;
 using RecamSystemApi.Models;
@@ -24,6 +25,7 @@ public class UserController : ControllerBase
         _agentListingCaseValidator = agentListingCaseValidator;
     }
     // Endpoint to register an agent, only accessible by Admin
+    [LogUserAction(UserAction.CreateAgent, AdditionalInfo = "Register a new agent")]
     [Authorize(Roles = "Admin")]
     [HttpPost("registerAgent")]
     public async Task<IActionResult> RegisterAgent([FromForm] AgentCreateDto registerRequest)
@@ -38,9 +40,9 @@ public class UserController : ControllerBase
 
     }
 
+    [LogUserAction(UserAction.AddAgent, AdditionalInfo = "Add an agent to photographer")]
     [Authorize(Roles = "Photographer")]
     [HttpPost("addAgent")]
-
     public async Task<IActionResult> AddAgent([FromBody] string agentEmail)
     {
         string? currentUserId = User.FindFirst("UserId")?.Value;
@@ -67,6 +69,7 @@ public class UserController : ControllerBase
 
     }
 
+    [LogUserAction(UserAction.DeleteUser, AdditionalInfo = "Delete a user")]
     // Endpoint to delete a user, only accessible by Admin
     [Authorize(Roles = "Admin")]
     [HttpDelete("deleteUser")]

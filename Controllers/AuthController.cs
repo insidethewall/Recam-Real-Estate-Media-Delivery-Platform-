@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RecamSystemApi.Attributes;
 using RecamSystemApi.DTOs;
 using RecamSystemApi.Services;
 using RecamSystemApi.Utility;
@@ -21,13 +22,14 @@ namespace RecamSystemApi.Controllers
         }
 
         [HttpPost("register")]
+        [LogUserAction(UserAction.Register, AdditionalInfo = "Register a user")]
         public async Task<IActionResult> Register([FromForm] RegisterRequestDto registerRequest)
         {
             try
-            { 
+            {
                 string token = await _authService.Register(registerRequest);
                 return StatusCode(201, ApiResponse<string>.Success(token, "User registered successfully."));
-                
+
             } catch (UserRegistrationException ex)
             {
                 _logger.LogError(ex, "User registration failed.");
@@ -42,6 +44,7 @@ namespace RecamSystemApi.Controllers
         }
 
         [HttpPost("login")]
+        [LogUserAction(UserAction.Login, AdditionalInfo = "User Login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
             string token = await _authService.Login(loginRequest);
